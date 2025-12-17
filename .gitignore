@@ -1,0 +1,163 @@
+################################################################################
+# .NET / ASP.NET Core
+################################################################################
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Logs
+logs/
+*.log
+
+# Generated files
+*.g.cs
+*.g.i.cs
+*.designer.cs
+*.assemblyattributes.cs
+
+# NuGet
+*.nupkg
+*.snupkg
+# Older/legacy
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# MSBuild generated
+*.nuget.props
+*.nuget.targets
+
+# Publish artifacts
+**/bin/Debug/*/publish/
+**/bin/Release/*/publish/
+publish/
+publisher/
+artifacts/
+
+################################################################################
+# IDE / Tooling
+################################################################################
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.rsuser
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+################################################################################
+# Testing & Coverage
+################################################################################
+
+TestResult*/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+CoverageResults/
+
+################################################################################
+# ASP.NET Core web assets
+################################################################################
+
+# Client assets restored/produced locally
+wwwroot/lib/
+wwwroot/dist/
+wwwroot/node_modules/
+
+################################################################################
+# Node (for SPA or front-end build in ASP.NET Core)
+################################################################################
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+################################################################################
+# Config / Secrets (keep templates, ignore local overrides)
+################################################################################
+
+# Common local config/secrets
+appsettings.Development.json
+appsettings.*.local.json
+secrets.json
+*.secret
+.env
+.env.*.local
+
+# Publish profiles (user-scoped)
+Properties/PublishProfiles/*.pubxml.user
+*.pubxml.user
+*.publishsettings
+
+################################################################################
+# Databases
+################################################################################
+
+*.mdf
+*.ldf
+*.ndf
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+################################################################################
+# OS junk
+################################################################################
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+################################################################################
+# Misc
+################################################################################
+
+*.tmp
+*.orig
+
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+
+## main web project Build output for api site, https://github.com/yggdrasil-au/Anime-Dimension
+/api/www
