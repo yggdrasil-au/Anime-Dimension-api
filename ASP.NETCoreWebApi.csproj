@@ -1,101 +1,74 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <!-- changed to multi-target -->
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <UserSecretsId>176e78ba-2d90-49b3-b7c9-0ef2a477af82</UserSecretsId>
-  </PropertyGroup>
+    <PropertyGroup>
+        <!-- changed to multi-target -->
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <UserSecretsId>176e78ba-2d90-49b3-b7c9-0ef2a477af82</UserSecretsId>
+    </PropertyGroup>
 
-    <!-- net10 package versions -->
-    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <!-- Ensure local .sqlite3 files are copied to build and publish output -->
+    <ItemGroup>
+        <Content Include="../db/anime-dimension.sqlite3">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+    </ItemGroup>
+
+    <!-- for debug build, include the local users.db -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <Content Include="../db/users.db">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+    </ItemGroup>
+
+    <!-- NEW: Copy www\api assets to build and publish outputs, and keep them outside the single-file bundle -->
+    <ItemGroup Condition="Exists('www\api')">
+        <Content Include="www\api\**\*.html">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+        <Content Include="www\api\**\*.css">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+        <Content Include="www\api\**\*.js">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+        <Content Include="www\api\**\*.woff">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+        <Content Include="www\api\**\*.woff2">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+        <Content Include="www\api\**\*.svg">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="RestSharp" Version="113.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.1" />
+
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
+
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
     </ItemGroup>
 
-  <!-- Ensure local .db files are copied to build and publish output -->
-  <ItemGroup>
-    <Content Include="*.db">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-
-  <!-- Ensure local .sqlite3 files are copied to build and publish output -->
-  <ItemGroup>
-    <Content Include="*.sqlite3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-
-
-
-  <!-- During publish, copy the upstream Anime-Planet DB (if present) into the output as anime-dimension.db -->
-  <Target Name="CopyApDbForPublish" BeforeTargets="Publish">
-    <PropertyGroup>
-      <ApDbPath>..\Anime-Planet\python\anime-dimension.sqlite3</ApDbPath>
-    </PropertyGroup>
-    <ItemGroup Condition="Exists('$(ApDbPath)')">
-      <ApDb Include="$(ApDbPath)" />
-    </ItemGroup>
-
-    <!-- Copy into intermediate and publish output with the expected name -->
-    <Copy Condition="@(ApDb) != ''" SourceFiles="@(ApDb)" DestinationFiles="$(OutDir)anime-dimension.db" SkipUnchangedFiles="true" />
-    <Copy Condition="@(ApDb) != '' and '$(PublishDir)' != ''" SourceFiles="@(ApDb)" DestinationFiles="$(PublishDir)anime-dimension.db" SkipUnchangedFiles="true" />
-  </Target>
-
-  <!-- NEW: Copy api\www\api assets to build and publish outputs, and keep them outside the single-file bundle -->
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.woff">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.woff2">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="Exists('api\www\api')">
-    <Content Include="api\www\api\**\*.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="RestSharp" Version="113.0.0" />
-  </ItemGroup>
 </Project>

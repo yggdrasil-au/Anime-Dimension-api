@@ -66,7 +66,7 @@ public static class AuthEndpoints {
             }
 
             // Hash the password
-            string passwordHash = AuthHelpers.HashPassword(password);
+            string passwordHash = helpers.AuthHelpers.HashPassword(password);
 
             // Create new user entity
             // Generate a numeric userId with length between 6 and 10 and ensure uniqueness

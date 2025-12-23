@@ -164,3 +164,5 @@ Desktop.ini
 
 appsettings.Secrets.json
 .history/
+## generate these using the main anime-dimension website project
+www/

@@ -100,7 +100,7 @@ public static class LoginEndpoints {
 
             Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username);
 
-            if (user == null || !AuthHelpers.VerifyPassword(password, user.PasswordHash)) {
+            if (user == null || !helpers.AuthHelpers.VerifyPassword(password, user.PasswordHash)) {
                 logger.LogInformation("400: Invalid login attempt for username '{Username}'", username);
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Your username or password was incorrect" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,

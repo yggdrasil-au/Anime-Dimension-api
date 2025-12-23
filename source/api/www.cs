@@ -15,7 +15,7 @@ namespace ASP.NETCoreWebApi;
 
 public static class WebEndpoints {
 
-    static readonly string WwwRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "api", "www", "api"));
+    static readonly string WwwRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "www", "api"));
 
     static readonly Dictionary<string, string> ContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
         [".html"] = "text/html; charset=utf-8",
@@ -122,6 +122,12 @@ public static class WebEndpoints {
             sb.AppendLine(value: "Disallow: /");
             sb.AppendLine(value: "Crawl-delay: 10");
             return Results.Text(sb.ToString(), contentType: "text/plain; charset=utf-8");
+        });
+
+        // any /*.html redirect to /www/*.html
+        app.MapGet(pattern: "/{filename}.html", (string filename) => {
+            string url = $"/www/{filename}.html";
+            return Results.Redirect(url: url, permanent: false);
         });
 
         // API website pages: /www and /www/**
