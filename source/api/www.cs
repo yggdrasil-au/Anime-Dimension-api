@@ -124,20 +124,7 @@ public static class WebEndpoints {
             return Results.Text(sb.ToString(), contentType: "text/plain; charset=utf-8");
         });
 
-        // any /*.html redirect to /www/*.html
-        app.MapGet(pattern: "/{filename}.html", (string filename) => {
-            string url = $"/www/{filename}.html";
-            return Results.Redirect(url: url, permanent: false);
-        });
-
-        // API website pages: /www and /www/**
-        app.MapGet(pattern: "/www", () => {
-            string rel = "index.html";
-            return TryResolveFile(rel, out string? fp, out List<string>? candidates)
-                    ? Results.File(fp, GetContentType(fp))
-                    : NotFoundOrDebug(rel, candidates);
-        });
-
+        // Serve /www/{**path}
         app.MapGet(pattern: "/www/{**path}", (string path) => {
             // Resolve inside www/ subtree (keep 'path' relative)
             string rel = (path ?? string.Empty).Replace('\\', '/');
@@ -146,6 +133,30 @@ public static class WebEndpoints {
                 return Results.File(fp, contentType: ct);
             }
             return NotFoundOrDebug(rel, candidates);
+        });
+        // API website pages: /www and /www/
+        app.MapGet(pattern: "/www", () => {
+            string rel = "index.html";
+            return TryResolveFile(rel, out string? fp, out List<string>? candidates)
+                    ? Results.File(fp, GetContentType(fp))
+                    : NotFoundOrDebug(rel, candidates);
+        });
+        // any /*.html redirect to /www/*.html
+        app.MapGet(pattern: "/{filename}.html", (string filename) => {
+            string url = $"/www/{filename}.html";
+            return Results.Redirect(url: url, permanent: false);
+        });
+
+        // FIXED: Replaced invalid catch-all pattern /{**path}/{filename}.html
+        // Now using /{**path} and checking the extension manually.
+        app.MapGet(pattern: "/{**path}", (string path) => {
+            if (path.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) {
+                // Redirect /path/to/file.html -> /www/path/to/file.html
+                string url = $"/www/{path}";
+                return Results.Redirect(url: url, permanent: false);
+            }
+            // If not .html and not matched by previous routes, 404
+            return Results.NotFound();
         });
     }
 }
