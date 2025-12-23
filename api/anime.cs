@@ -11,8 +11,8 @@ namespace ASP.NETCoreWebApi;
 public static class AnimeEndpoints {
     public static void MapAnimeEndpoints(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder app) {
         // GET detail (used by SSR and CSR), these are not currently in use only ssg offline Static build in use
-        app.MapGet("/api/anime/by-slug/{slug}", (String slug, AnimeDbOptions db) => {
-            if (String.IsNullOrWhiteSpace(slug))
+        app.MapGet("/api/anime/by-slug/{slug}", (string slug, AnimeDbOptions db) => {
+            if (string.IsNullOrWhiteSpace(slug))
                 return Results.BadRequest(new {
                     status = "error",
                     msg = "Invalid slug."
@@ -29,8 +29,8 @@ public static class AnimeEndpoints {
         });
 
         // ssr Accept POST too for convenience
-        app.MapPost("/api/anime/by-slug/{slug}", (String slug, AnimeDbOptions db) => {
-            if (String.IsNullOrWhiteSpace(slug))
+        app.MapPost("/api/anime/by-slug/{slug}", (string slug, AnimeDbOptions db) => {
+            if (string.IsNullOrWhiteSpace(slug))
                 return Results.BadRequest(new {
                     status = "error",
                     msg = "Invalid slug."
@@ -48,26 +48,26 @@ public static class AnimeEndpoints {
 
     }
 
-    static Boolean ColumnExists(Microsoft.Data.Sqlite.SqliteConnection conn, String table, String column) {
+    static bool ColumnExists(Microsoft.Data.Sqlite.SqliteConnection conn, string table, string column) {
         using Microsoft.Data.Sqlite.SqliteCommand c = conn.CreateCommand();
         c.CommandText = "PRAGMA table_info(" + table + ")";
         using Microsoft.Data.Sqlite.SqliteDataReader r = c.ExecuteReader();
         while (r.Read()) {
-            String name = r.GetString(1); // name
-            if (String.Equals(name, column, StringComparison.OrdinalIgnoreCase))
+            string name = r.GetString(1); // name
+            if (string.Equals(name, column, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
         return false;
     }
 
-    static System.Collections.Generic.HashSet<String> ReaderColumns(Microsoft.Data.Sqlite.SqliteDataReader reader) {
-        System.Collections.Generic.HashSet<String> set = new System.Collections.Generic.HashSet<String>(StringComparer.OrdinalIgnoreCase);
+    static System.Collections.Generic.HashSet<string> ReaderColumns(Microsoft.Data.Sqlite.SqliteDataReader reader) {
+        System.Collections.Generic.HashSet<string> set = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (Int32 i = 0; i < reader.FieldCount; i++)
             set.Add(reader.GetName(i));
         return set;
     }
 
-    static T? ReadOrDefault<T>(Microsoft.Data.Sqlite.SqliteDataReader reader, String name) {
+    static T? ReadOrDefault<T>(Microsoft.Data.Sqlite.SqliteDataReader reader, string name) {
         int idx;
         try { idx = reader.GetOrdinal(name); } catch (IndexOutOfRangeException) { return default; }
         if (idx < 0 || reader.IsDBNull(idx)) return default;
@@ -90,15 +90,15 @@ public static class AnimeEndpoints {
         return (T)Convert.ChangeType(val, t);
     }
 
-    static AnimeDto? GetAnimeBySlug(String dbPath, String slug) {
+    static AnimeDto? GetAnimeBySlug(string dbPath, string slug) {
         using Microsoft.Data.Sqlite.SqliteConnection conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
         conn.Open();
 
         // Fetch base row
         using Microsoft.Data.Sqlite.SqliteCommand cmd = conn.CreateCommand();
-        Boolean hasTooltip = ColumnExists(conn, "anime", "tooltip");
-        Boolean hasAltText = ColumnExists(conn, "anime", "alt_text");
-        Boolean hasTotalEpisodes = ColumnExists(conn, "anime", "data_total_episodes");
+        bool hasTooltip = ColumnExists(conn, "anime", "tooltip");
+        bool hasAltText = ColumnExists(conn, "anime", "alt_text");
+        bool hasTotalEpisodes = ColumnExists(conn, "anime", "data_total_episodes");
 
         // Build SELECT list dynamically based on available columns to support multiple schema versions
         System.Text.StringBuilder select = new System.Text.StringBuilder();
@@ -113,22 +113,22 @@ public static class AnimeEndpoints {
         using Microsoft.Data.Sqlite.SqliteDataReader reader = cmd.ExecuteReader();
         if (!reader.Read())
             return null;
-        System.Collections.Generic.HashSet<String> cols = ReaderColumns(reader);
-        Int64 id = ReadOrDefault<Int64>(reader, "id");
-        String rowSlug = ReadOrDefault<String>(reader, "slug") ?? slug;
-        String? title = ReadOrDefault<String>(reader, "title") ?? rowSlug;
-        String? alt_title = ReadOrDefault<String>(reader, "alt_title");
-        String? alt_text = hasAltText ? ReadOrDefault<String>(reader, "alt_text") : null;
-        String? thumb = ReadOrDefault<String>(reader, "thumbnail_url");
-        String? summary = null;
-        String? synopsis = ReadOrDefault<String>(reader, "synopsis");
-        String? tooltip = hasTooltip ? ReadOrDefault<String>(reader, "tooltip") : null;
-        String? year = ReadOrDefault<String>(reader, "year");
-        String? type = ReadOrDefault<String>(reader, "type");
+        System.Collections.Generic.HashSet<string> cols = ReaderColumns(reader);
+        long id = ReadOrDefault<long>(reader, "id");
+        string rowSlug = ReadOrDefault<string>(reader, "slug") ?? slug;
+        string? title = ReadOrDefault<string>(reader, "title") ?? rowSlug;
+        string? alt_title = ReadOrDefault<string>(reader, "alt_title");
+        string? alt_text = hasAltText ? ReadOrDefault<string>(reader, "alt_text") : null;
+        string? thumb = ReadOrDefault<string>(reader, "thumbnail_url");
+        string? summary = null;
+        string? synopsis = ReadOrDefault<string>(reader, "synopsis");
+        string? tooltip = hasTooltip ? ReadOrDefault<string>(reader, "tooltip") : null;
+        string? year = ReadOrDefault<string>(reader, "year");
+        string? type = ReadOrDefault<string>(reader, "type");
         // data_id moved to external_id.external_numeric_id via anime_id in new schema
-        String? data_id = null;
-        String? ep_type = null; // data_episode_type no longer exists in new schema
-        String? total_eps = hasTotalEpisodes ? ReadOrDefault<Int64?>(reader, "data_total_episodes")?.ToString() : null;
+        string? data_id = null;
+        string? ep_type = null; // data_episode_type no longer exists in new schema
+        string? total_eps = hasTotalEpisodes ? ReadOrDefault<long?>(reader, "data_total_episodes")?.ToString() : null;
 
         reader.Close();
 
@@ -147,7 +147,7 @@ public static class AnimeEndpoints {
         }
 
         // Fetch tags
-        System.Collections.Generic.List<String> tags = new System.Collections.Generic.List<String>();
+        System.Collections.Generic.List<string> tags = new System.Collections.Generic.List<string>();
         using (Microsoft.Data.Sqlite.SqliteCommand tcmd = conn.CreateCommand()) {
             tcmd.CommandText = @"
                 SELECT t.name FROM tag t
@@ -160,35 +160,35 @@ public static class AnimeEndpoints {
         }
 
         // If tooltip is missing in DB, synthesize a simple one compatible with CSR tooltip parser
-        if (String.IsNullOrWhiteSpace(tooltip)) {
-            Func<String, String> enc = (String s) => System.Net.WebUtility.HtmlEncode(s ?? String.Empty);
-            System.Collections.Generic.List<String> parts = new System.Collections.Generic.List<String>();
+        if (string.IsNullOrWhiteSpace(tooltip)) {
+            Func<string, string> enc = (string s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+            System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
             parts.Add($"<h5 class=\"theme-font\">{enc(title ?? rowSlug)}</h5>");
-            if (!String.IsNullOrWhiteSpace(type) || !String.IsNullOrWhiteSpace(year)) {
-                System.Collections.Generic.List<String> li = new System.Collections.Generic.List<String>();
-                if (!String.IsNullOrWhiteSpace(type))
+            if (!string.IsNullOrWhiteSpace(type) || !string.IsNullOrWhiteSpace(year)) {
+                System.Collections.Generic.List<string> li = new System.Collections.Generic.List<string>();
+                if (!string.IsNullOrWhiteSpace(type))
                     li.Add($"<li class=\"type\">{enc(type!)}</li>");
-                if (!String.IsNullOrWhiteSpace(year))
+                if (!string.IsNullOrWhiteSpace(year))
                     li.Add($"<li class=\"iconYear\">{enc(year!)}</li>");
-                parts.Add($"<ul class=\"entryBar\">{String.Join(String.Empty, li)}</ul>");
+                parts.Add($"<ul class=\"entryBar\">{string.Join(string.Empty, li)}</ul>");
             }
-            String? sum = summary ?? synopsis;
-            if (!String.IsNullOrWhiteSpace(sum))
+            string? sum = summary ?? synopsis;
+            if (!string.IsNullOrWhiteSpace(sum))
                 parts.Add($"<p>{enc(sum!)}</p>");
             if (tags.Count > 0) {
-                String tagLis = String.Join(String.Empty, tags.Select(t => $"<li>{enc(t)}</li>"));
+                string tagLis = string.Join(string.Empty, tags.Select(t => $"<li>{enc(t)}</li>"));
                 parts.Add($"<div class=\"tags\"><h4>Tags</h4><ul>{tagLis}</ul></div>");
             }
-            tooltip = String.Join(String.Empty, parts);
+            tooltip = string.Join(string.Empty, parts);
         }
 
         return new AnimeDto(
-            title: title ?? String.Empty,
+            title: title ?? string.Empty,
             slug: rowSlug,
-            thumbnailUrl: thumb ?? String.Empty,
-            summary: summary ?? synopsis ?? String.Empty,
-            year: year ?? String.Empty,
-            type: type ?? String.Empty,
+            thumbnailUrl: thumb ?? string.Empty,
+            summary: summary ?? synopsis ?? string.Empty,
+            year: year ?? string.Empty,
+            type: type ?? string.Empty,
             alt_title: alt_title,
             data_id: data_id,
             data_episode_type: ep_type,
@@ -202,20 +202,20 @@ public static class AnimeEndpoints {
     }
 
     public record AnimeDto(
-        String? title,
-        String slug,
-        String thumbnailUrl,
-        String summary,
-        String year,
-        String type,
-        String? alt_title = null,
-        String? data_id = null,
-        String? data_episode_type = null,
-        String? data_total_episodes = null,
-        String[]? @class = null,
-        String? synopsis = null,
-        String[]? tags = null,
-        String? alt_text = null,
-        String? tooltip = null
+        string? title,
+        string slug,
+        string thumbnailUrl,
+        string summary,
+        string year,
+        string type,
+        string? alt_title = null,
+        string? data_id = null,
+        string? data_episode_type = null,
+        string? data_total_episodes = null,
+        string[]? @class = null,
+        string? synopsis = null,
+        string[]? tags = null,
+        string? alt_text = null,
+        string? tooltip = null
     );
 }

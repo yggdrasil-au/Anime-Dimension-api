@@ -15,18 +15,18 @@ public static class ValidationsEndpoints {
     public static void MapValidationEndpoints(this IEndpointRouteBuilder app) {
 
         // validate new users username input
-        app.MapPost("/api/validation/username", async (HttpRequest req, UsersDbContext usersDb) => {
+        app.MapPost("/api/validation/username", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
 
             UsernameRequest? body = await req.ReadFromJsonAsync<UsernameRequest>();
-            String? username = body?.username;
+            string? username = body?.username;
 
-            if (String.IsNullOrWhiteSpace(username) || !Regex.IsMatch(username, @"^[a-zA-Z0-9]+$")) {
+            if (string.IsNullOrWhiteSpace(username) || !Regex.IsMatch(username, @"^[a-zA-Z0-9]+$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Only letters or numbers" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
-            Boolean userExists = await usersDb.Users.AnyAsync(u => u.Username == username);
+            bool userExists = await usersDb.Users.AnyAsync(u => u.Username == username);
 
             if (userExists) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username is unavailable" },
@@ -41,7 +41,7 @@ public static class ValidationsEndpoints {
     }
 
     public class UsernameRequest {
-        public String? username {
+        public string? username {
             get; set;
         }
     }

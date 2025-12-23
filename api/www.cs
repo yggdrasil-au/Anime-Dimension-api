@@ -15,9 +15,9 @@ namespace ASP.NETCoreWebApi;
 
 public static class WebEndpoints {
 
-    static readonly String WwwRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "api", "www", "api"));
+    static readonly string WwwRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "api", "www", "api"));
 
-    static readonly Dictionary<String, String> ContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+    static readonly Dictionary<string, string> ContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
         [".html"] = "text/html; charset=utf-8",
         [".htm"] = "text/html; charset=utf-8",
         [".css"] = "text/css; charset=utf-8",
@@ -37,24 +37,24 @@ public static class WebEndpoints {
         [".woff2"] = "font/woff2",
     };
 
-    static String GetContentType(String path) {
-        String ext = Path.GetExtension(path);
-        return !String.IsNullOrEmpty(ext) && ContentTypes.TryGetValue(ext, out String? ct) ? ct : "application/octet-stream";
+    static string GetContentType(string path) {
+        string ext = Path.GetExtension(path);
+        return !string.IsNullOrEmpty(ext) && ContentTypes.TryGetValue(ext, out string? ct) ? ct : "application/octet-stream";
     }
 
     // Return candidate paths for debug visibility.
-    static Boolean TryResolveFile(String relative, out String fullPath, out List<String> candidates) {
+    static bool TryResolveFile(string relative, out string fullPath, out List<string> candidates) {
         // Normalize and prevent path traversal
-        relative = (relative ?? String.Empty).Replace('\\', '/').TrimStart('/');
+        relative = (relative ?? string.Empty).Replace('\\', '/').TrimStart('/');
         if (relative.Contains("..")) {
-            fullPath = String.Empty;
+            fullPath = string.Empty;
             candidates = new List<string>();
             return false;
         }
 
         // Build candidate list
-        candidates = new List<String>();
-        if (String.IsNullOrWhiteSpace(relative) || relative.EndsWith('/')) {
+        candidates = new List<string>();
+        if (string.IsNullOrWhiteSpace(relative) || relative.EndsWith('/')) {
             candidates.Add(Path.Combine(WwwRoot, relative, "index.html"));
         } else if (Path.HasExtension(relative)) {
             candidates.Add(Path.Combine(WwwRoot, relative));
@@ -63,8 +63,8 @@ public static class WebEndpoints {
             candidates.Add(Path.Combine(WwwRoot, relative, "index.html"));
         }
 
-        foreach (String c in candidates) {
-            String fp = Path.GetFullPath(c);
+        foreach (string c in candidates) {
+            string fp = Path.GetFullPath(c);
             if (!fp.StartsWith(WwwRoot, StringComparison.OrdinalIgnoreCase))
                 continue;
             if (File.Exists(fp)) {
@@ -72,12 +72,12 @@ public static class WebEndpoints {
                 return true;
             }
         }
-        fullPath = String.Empty;
+        fullPath = string.Empty;
         return false;
     }
 
 
-    static IResult NotFoundOrDebug(String requested, List<String> candidates) {
+    static IResult NotFoundOrDebug(string requested, List<string> candidates) {
         //#if DEBUG
         DTOs.DebugNotFoundResponse payload = new DTOs.DebugNotFoundResponse {
             requested = requested,
@@ -99,16 +99,16 @@ public static class WebEndpoints {
         app.MapGet(pattern: "/", () => Results.Redirect(url: "/www", permanent: false));
 
         // Serve common static asset folders copied during build
-        foreach (String? basePath in new[] { "css/{**path}", "/js/{**path}", "/assets/{**path}" }) {
-            app.MapGet(basePath, (String path) => {
+        foreach (string? basePath in new[] { "css/{**path}", "/js/{**path}", "/assets/{**path}" }) {
+            app.MapGet(basePath, (string path) => {
                 // basePath like "/css/{**path}" -> folder name at index 1
-                String folder = basePath.Split('/', StringSplitOptions.RemoveEmptyEntries)[0];
-                if (String.IsNullOrWhiteSpace(path))
-                    return NotFoundOrDebug($"{folder}/", new List<String>());
+                string folder = basePath.Split('/', StringSplitOptions.RemoveEmptyEntries)[0];
+                if (string.IsNullOrWhiteSpace(path))
+                    return NotFoundOrDebug($"{folder}/", new List<string>());
 
-                String rel = Path.Combine(folder, path).Replace('\\', '/');
-                if (TryResolveFile(rel, out String? fp, out List<String>? candidates)) {
-                    String ct = GetContentType(fp);
+                string rel = Path.Combine(folder, path).Replace('\\', '/');
+                if (TryResolveFile(rel, out string? fp, out List<string>? candidates)) {
+                    string ct = GetContentType(fp);
                     return Results.File(fp, contentType: ct);
                 }
                 return NotFoundOrDebug(rel, candidates);
@@ -126,17 +126,17 @@ public static class WebEndpoints {
 
         // API website pages: /www and /www/**
         app.MapGet(pattern: "/www", () => {
-            String rel = "index.html";
-            return TryResolveFile(rel, out String? fp, out List<String>? candidates)
+            string rel = "index.html";
+            return TryResolveFile(rel, out string? fp, out List<string>? candidates)
                     ? Results.File(fp, GetContentType(fp))
                     : NotFoundOrDebug(rel, candidates);
         });
 
-        app.MapGet(pattern: "/www/{**path}", (String path) => {
+        app.MapGet(pattern: "/www/{**path}", (string path) => {
             // Resolve inside www/ subtree (keep 'path' relative)
-            String rel = (path ?? String.Empty).Replace('\\', '/');
-            if (TryResolveFile(rel, out String? fp, out List<String>? candidates)) {
-                String ct = GetContentType(fp);
+            string rel = (path ?? string.Empty).Replace('\\', '/');
+            if (TryResolveFile(rel, out string? fp, out List<string>? candidates)) {
+                string ct = GetContentType(fp);
                 return Results.File(fp, contentType: ct);
             }
             return NotFoundOrDebug(rel, candidates);

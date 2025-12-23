@@ -161,3 +161,6 @@ Desktop.ini
 
 ## main web project Build output for api site, https://github.com/yggdrasil-au/Anime-Dimension
 /api/www
+
+appsettings.Secrets.json
+.history/

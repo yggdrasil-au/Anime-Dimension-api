@@ -20,9 +20,9 @@ public static class UsersEndpoints {
     public static void MapUsersEndpoints(this IEndpointRouteBuilder app) {
 
         // GET /api/users/profile?username=foo
-        app.MapGet("/api/users/profile", async (HttpRequest req, UsersDbContext usersDb) => {
-            String uname = (req.Query["username"].ToString() ?? String.Empty).Trim();
-            if (String.IsNullOrEmpty(uname) || !Regex.IsMatch(uname, @"^[a-zA-Z0-9]+$")) {
+        app.MapGet("/api/users/profile", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
+            string uname = (req.Query["username"].ToString() ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(uname) || !Regex.IsMatch(uname, @"^[a-zA-Z0-9]+$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or missing username" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
@@ -35,17 +35,17 @@ public static class UsersEndpoints {
                     statusCode: 404);
             }
 
-            String avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(user.UserId)}.webp";
-            String bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(user.UserId)}.webp";
+            string avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(user.UserId)}.webp";
+            string bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(user.UserId)}.webp";
 
             // Ensure supporting tables exist
             await EnsureUserProfileTables(usersDb);
 
             // Gather profile extras (joined date, watch stats, ratings)
-            String joinedIso = DateTime.UtcNow.ToString("o");
-            Int64 minutesWatched = 0;
-            Int64 watched = 0, watching = 0, want = 0, stalled = 0, dropped = 0, wont = 0;
-            Dictionary<String, Int64> ratingsMap = new Dictionary<String, Int64> {
+            string joinedIso = DateTime.UtcNow.ToString("o");
+            long minutesWatched = 0;
+            long watched = 0, watching = 0, want = 0, stalled = 0, dropped = 0, wont = 0;
+            Dictionary<string, long> ratingsMap = new Dictionary<string, long> {
                 ["5.0"] = 0,
                 ["4.5"] = 0,
                 ["4.0"] = 0,
@@ -110,7 +110,7 @@ public static class UsersEndpoints {
                 }
             }
 
-            Int64 ratingsTotal = ratingsMap.Values.Aggregate(0L, (acc, v) => acc + v);
+            long ratingsTotal = ratingsMap.Values.Aggregate(0L, (acc, v) => acc + v);
 
             DTOs.UserProfileData profile = new DTOs.UserProfileData {
                 user_id = user.UserId,
@@ -130,9 +130,9 @@ public static class UsersEndpoints {
         });
 
         // GET /api/users/me
-        app.MapGet("/api/users/me", async (HttpRequest req, UsersDbContext usersDb) => {
-            String? token = req.Cookies["session_token"];
-            if (String.IsNullOrEmpty(token)) {
+        app.MapGet("/api/users/me", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
+            string? token = req.Cookies["session_token"];
+            if (string.IsNullOrEmpty(token)) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 401);
@@ -152,8 +152,8 @@ public static class UsersEndpoints {
                     statusCode: 404);
             }
 
-            String avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(user.UserId)}.webp";
-            String bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(user.UserId)}.webp";
+            string avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(user.UserId)}.webp";
+            string bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(user.UserId)}.webp";
 
             DTOs.UserMeData me = new DTOs.UserMeData { user_id = user.UserId, user_name = user.Username, avatar_url = avatarUrl, banner_url = bannerUrl };
             return Results.Json(new DTOs.OkResponse<DTOs.UserMeData> { data = me },
@@ -161,7 +161,7 @@ public static class UsersEndpoints {
         });
 
         // POST /api/users/me/avatar (multipart/form-data, field: avatar)
-        app.MapPost("/api/users/me/avatar", async (HttpRequest req, UsersDbContext usersDb) => {
+        app.MapPost("/api/users/me/avatar", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
             Models.User? me = await ResolveUserFromSession(req, usersDb);
             if (me == null)
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
@@ -177,21 +177,21 @@ public static class UsersEndpoints {
             }
 
             // Save to /images/users/avatars/{user_id}.webp (relative to working directory)
-            String outDir = Path.Combine("images", "users", "avatars");
+            string outDir = Path.Combine("images", "users", "avatars");
             Directory.CreateDirectory(outDir);
-            String outPathWebp = Path.Combine(outDir, $"{me.UserId}.webp");
+            string outPathWebp = Path.Combine(outDir, $"{me.UserId}.webp");
 
             using (FileStream stream = File.Create(outPathWebp)) {
                 await file.CopyToAsync(stream);
             }
 
-            String avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(me.UserId)}.webp";
+            string avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(me.UserId)}.webp";
             return Results.Json(new DTOs.OkResponse<object> { data = new { avatar_url = avatarUrl } },
                 (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!);
         });
 
         // POST /api/users/me/banner (multipart/form-data, field: banner)
-        app.MapPost("/api/users/me/banner", async (HttpRequest req, UsersDbContext usersDb) => {
+        app.MapPost("/api/users/me/banner", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
             Models.User? me = await ResolveUserFromSession(req, usersDb);
             if (me == null)
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
@@ -207,23 +207,23 @@ public static class UsersEndpoints {
             }
 
             // Save to /assets/images/users/backgrounds/{user_id}.webp (relative to working directory)
-            String outDir = Path.Combine("assets", "images", "users", "backgrounds");
+            string outDir = Path.Combine("assets", "images", "users", "backgrounds");
             Directory.CreateDirectory(outDir);
-            String outPathWebp = Path.Combine(outDir, $"{me.UserId}.webp");
+            string outPathWebp = Path.Combine(outDir, $"{me.UserId}.webp");
 
             using (FileStream stream = File.Create(outPathWebp)) {
                 await file.CopyToAsync(stream);
             }
 
-            String bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(me.UserId)}.webp";
+            string bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(me.UserId)}.webp";
             return Results.Json(new DTOs.OkResponse<object> { data = new { banner_url = bannerUrl } },
                 (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!);
         });
     }
 
-    private static async Task<ASP.NETCoreWebApi.Models.User?> ResolveUserFromSession(HttpRequest req, UsersDbContext usersDb) {
-        String? token = req.Cookies["session_token"];
-        if (String.IsNullOrEmpty(token))
+    private static async Task<ASP.NETCoreWebApi.Models.User?> ResolveUserFromSession(HttpRequest req, Sql.UsersDbContext usersDb) {
+        string? token = req.Cookies["session_token"];
+        if (string.IsNullOrEmpty(token))
             return null;
         Models.UserSession? session = await usersDb.UserSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionToken == token);
         if (session == null || session.ExpiresAt < DateTime.UtcNow)
@@ -231,13 +231,13 @@ public static class UsersEndpoints {
         Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == session.UserId);
         return user;
     }
-    private static async Task EnsureUserProfileTables(UsersDbContext usersDb) {
-        String createProfiles = @"CREATE TABLE IF NOT EXISTS UserProfiles (
+    private static async Task EnsureUserProfileTables(Sql.UsersDbContext usersDb) {
+        string createProfiles = @"CREATE TABLE IF NOT EXISTS UserProfiles (
             UserId TEXT PRIMARY KEY,
             JoinedAt TEXT NOT NULL
         );";
 
-        String createWatchStats = @"CREATE TABLE IF NOT EXISTS UserWatchStats (
+        string createWatchStats = @"CREATE TABLE IF NOT EXISTS UserWatchStats (
             UserId TEXT PRIMARY KEY,
             MinutesWatched INTEGER NOT NULL DEFAULT 0,
             Watched INTEGER NOT NULL DEFAULT 0,
@@ -248,7 +248,7 @@ public static class UsersEndpoints {
             Wont INTEGER NOT NULL DEFAULT 0
         );";
 
-        String createRatings = @"CREATE TABLE IF NOT EXISTS UserRatings (
+        string createRatings = @"CREATE TABLE IF NOT EXISTS UserRatings (
             UserId TEXT PRIMARY KEY,
             R50 INTEGER NOT NULL DEFAULT 0,
             R45 INTEGER NOT NULL DEFAULT 0,
@@ -267,7 +267,7 @@ public static class UsersEndpoints {
         await usersDb.Database.ExecuteSqlRawAsync(createRatings);
     }
 
-    private static async Task EnsureUserProfileRows(SqliteConnection conn, String userId) {
+    private static async Task EnsureUserProfileRows(SqliteConnection conn, string userId) {
         // Profiles
         await using (SqliteCommand cmd = conn.CreateCommand()) {
             cmd.CommandText = @"INSERT INTO UserProfiles (UserId, JoinedAt)

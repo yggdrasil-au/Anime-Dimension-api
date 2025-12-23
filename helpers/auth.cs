@@ -7,7 +7,7 @@ public static class AuthHelpers {
     private const System.Int32 KeySize = 32;  // 256 bits
     private const System.Int32 Iterations = 100_000; // Higher is slower, but more secure
 
-    public static System.String HashPassword(System.String password) {
+    public static string HashPassword(string password) {
         // Generate a salt
         System.Byte[] salt = System.Security.Cryptography.RandomNumberGenerator.GetBytes(SaltSize);
 
@@ -19,9 +19,9 @@ public static class AuthHelpers {
         return $"{System.Convert.ToBase64String(salt)}.{System.Convert.ToBase64String(hash)}";
     }
 
-    public static System.Boolean VerifyPassword(System.String password, System.String storedHash) {
+    public static bool VerifyPassword(string password, string storedHash) {
         try {
-            System.String[] parts = storedHash.Split('.');
+            string[] parts = storedHash.Split('.');
             if (parts.Length != 2)
                 return false;
 

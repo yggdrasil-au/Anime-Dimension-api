@@ -15,10 +15,10 @@ public static class LoginEndpoints {
 
     public static void MapLoginEndpoints(this IEndpointRouteBuilder app) {
 
-        app.MapPut("/api/login/validateState", async (HttpRequest req, UsersDbContext usersDb, ILogger<Program> logger) => {
+        app.MapPut("/api/login/validateState", async (HttpRequest req, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
             try {
-                String? token = req.Cookies["session_token"];
-                if (String.IsNullOrEmpty(token)) {
+                string? token = req.Cookies["session_token"];
+                if (string.IsNullOrEmpty(token)) {
                     if (req.ContentLength.HasValue && req.ContentLength.Value > 0) {
                         try {
                             ValidateRequest? body = await req.ReadFromJsonAsync<ValidateRequest>();
@@ -30,14 +30,14 @@ public static class LoginEndpoints {
                 }
 
                 // If token is not in cookie, check the Authorization header
-                if (String.IsNullOrEmpty(token)) {
-                    String? authHeader = req.Headers["Authorization"];
-                    if (!String.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ")) {
+                if (string.IsNullOrEmpty(token)) {
+                    string? authHeader = req.Headers["Authorization"];
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ")) {
                         token = authHeader.Substring(7); // "Bearer ".Length
                     }
                 }
 
-                if (String.IsNullOrEmpty(token)) {
+                if (string.IsNullOrEmpty(token)) {
                     logger.LogInformation("401: Missing session token");
                     return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Missing session token" },
                         (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
@@ -81,17 +81,17 @@ public static class LoginEndpoints {
             }
         });
 
-        app.MapPut("/api/login", async (HttpRequest req, HttpResponse res, UsersDbContext usersDb, ILogger<Program> logger) => {
+        app.MapPut("/api/login", async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
             if (!req.HasJsonContentType()) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Request must be of type application/json" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 415);
             }
             AnimeLoginRequest? body = await req.ReadFromJsonAsync<AnimeLoginRequest>();
-            String? username = body?._username;
-            String? password = body?._password;
+            string? username = body?._username;
+            string? password = body?._password;
 
-            if (String.IsNullOrEmpty(username) || String.IsNullOrEmpty(password)) {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
                 logger.LogInformation("400: Username or password missing");
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username and password must be provided" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
@@ -125,7 +125,7 @@ public static class LoginEndpoints {
             }
 
             const Int32 MaxUserSessions = 10;
-            String sessionToken = Guid.NewGuid().ToString();
+            string sessionToken = Guid.NewGuid().ToString();
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             List<Models.UserSession> existingSessions = await usersDb.UserSessions
@@ -150,7 +150,7 @@ public static class LoginEndpoints {
             usersDb.UserSessions.Add(session);
             await usersDb.SaveChangesAsync();
 
-            String? platform = req.Headers["X-Platform"].FirstOrDefault();
+            string? platform = req.Headers["X-Platform"].FirstOrDefault();
 
             // Set the session token in a secure, HttpOnly cookie
             res.Cookies.Append("session_token", sessionToken, new CookieOptions {
@@ -161,11 +161,11 @@ public static class LoginEndpoints {
                 Expires = session.ExpiresAt
             });
 
-            if (!String.IsNullOrEmpty(platform) && platform == "web") {
+            if (!string.IsNullOrEmpty(platform) && platform == "web") {
                 logger.LogInformation("200: Login success (web) for user {UserId} ({Username})", user.UserId, user.Username);
                 return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> { data = new DTOs.LoginOkData { user_id = user.UserId, user_name = user.Username } },
                     (JsonTypeInfo<DTOs.OkResponse<DTOs.LoginOkData>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.LoginOkData>))!);
-            } else if (!String.IsNullOrEmpty(platform) && (platform == "android" || platform == "ios")) {
+            } else if (!string.IsNullOrEmpty(platform) && (platform == "android" || platform == "ios")) {
                 logger.LogInformation("200: Login success ({Platform}) for user {UserId} ({Username})", platform, user.UserId, user.Username);
                 return Results.Json(new DTOs.OkResponse<DTOs.LoginOkDataMobile> { data = new DTOs.LoginOkDataMobile { user_id = user.UserId, user_name = user.Username, session_token = sessionToken } },
                     (JsonTypeInfo<DTOs.OkResponse<DTOs.LoginOkDataMobile>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.LoginOkDataMobile>))!);
@@ -179,40 +179,40 @@ public static class LoginEndpoints {
     }
 
     public class ValidateRequest {
-        public String? token {
+        public string? token {
             get; set;
         }
     }
 
     public class SigninRequest {
-        public String? apf {
+        public string? apf {
             get; set;
         }
-        public String? email {
+        public string? email {
             get; set;
         }
-        public String? password {
+        public string? password {
             get; set;
         }
-        public String? request {
+        public string? request {
             get; set;
         }
-        public Boolean tos_pp_agree {
+        public bool tos_pp_agree {
             get; set;
         }
-        public String? username {
+        public string? username {
             get; set;
         }
     }
 
     public class AnimeLoginRequest {
-        public String? _username {
+        public string? _username {
             get; set;
         }
-        public String? _password {
+        public string? _password {
             get; set;
         }
-        public Boolean _remember_me {
+        public bool _remember_me {
             get; set;
         }
     }

@@ -11,14 +11,14 @@ namespace ASP.NETCoreWebApi;
 
 public static class LogoutEndpoints {
     public static void MapLogoutEndpoints(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder app) {
-        app.MapPost("/api/logout", async (HttpRequest req, HttpResponse res, UsersDbContext usersDb) => {
+        app.MapPost("/api/logout", async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb) => {
             // 1. Get the token from the secure cookie first (for web)
-            String? sessionToken = req.Cookies["session_token"];
+            string? sessionToken = req.Cookies["session_token"];
 
             // 2. If no cookie, try to get it from the body (for native)
             // This part is optional if your native apps don't use this endpoint,
             // but it's good practice for consistency.
-            if (String.IsNullOrEmpty(sessionToken)) {
+            if (string.IsNullOrEmpty(sessionToken)) {
                 try {
                     CsrfToken? body = await req.ReadFromJsonAsync<CsrfToken>();
                     sessionToken = body?._csrf_token;
@@ -26,7 +26,7 @@ public static class LogoutEndpoints {
             }
 
             // 3. If we still don't have a token, we can't do anything.
-            if (String.IsNullOrEmpty(sessionToken)) {
+            if (string.IsNullOrEmpty(sessionToken)) {
                 // Silently succeed, as the user is effectively logged out.
                 return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = "No active session found." },
                     (JsonTypeInfo<DTOs.SimpleStatusResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SimpleStatusResponse))!);
@@ -49,7 +49,7 @@ public static class LogoutEndpoints {
     }
 
     public class CsrfToken {
-        public String? _csrf_token {
+        public string? _csrf_token {
             get; set;
         }
     }

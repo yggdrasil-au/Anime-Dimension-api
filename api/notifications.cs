@@ -56,7 +56,7 @@ public static class NotificationsEndpoints {
         });
     }
 
-    private static String GetTimeAgo(DateTime created, DateTime now) {
+    private static string GetTimeAgo(DateTime created, DateTime now) {
         TimeSpan diff = now - created;
 
         if (diff.TotalDays >= 60)

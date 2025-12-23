@@ -1,9 +1,8 @@
-using System;
 
 namespace ASP.NETCoreWebApi;
 
 public class AnimeDbOptions {
-    public required String DbPath {
+    public required string DbPath {
         get; init;
     }
 }

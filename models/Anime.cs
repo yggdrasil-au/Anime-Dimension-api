@@ -9,17 +9,17 @@ public class Anime {
     public Int32 Id {
         get; set;
     }
-    public String Type { get; set; } = "anime";
-    public required String Title {
+    public string Type { get; set; } = "anime";
+    public required string Title {
         get; set;
     }
-    public required String Url {
+    public required string Url {
         get; set;
     }
-    public required String ThumbnailUrl {
+    public required string ThumbnailUrl {
         get; set;
     }
-    public required String Tooltip {
+    public required string Tooltip {
         get; set;
     }
 }

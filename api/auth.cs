@@ -1,18 +1,20 @@
 // api/auth.cs
 
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
+
+using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Linq;
-using ASP.NETCoreWebApi.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+using ASP.NETCoreWebApi.Serialization;
 
 
 namespace ASP.NETCoreWebApi;
@@ -23,7 +25,7 @@ public static class AuthEndpoints {
 
         app.MapPost("/api/auth/signup-token", async (HttpRequest req) => {
             RecaptchaRequest? body = await req.ReadFromJsonAsync<RecaptchaRequest>();
-            String? recaptcha_response = body?.recaptcha_response;
+            string? recaptcha_response = body?.recaptcha_response;
 
             // You can validate the recaptcha_response here
 
@@ -33,17 +35,17 @@ public static class AuthEndpoints {
                 statusCode: 200);
         });
 
-        app.MapPost("/api/auth/signup", async (HttpRequest req, UsersDbContext usersDb) => {
+        app.MapPost("/api/auth/signup", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
             SignupRequest? body = await req.ReadFromJsonAsync<SignupRequest>();
 
-            String? apf = body?.apf;
-            String? email = body?.email?.Trim().ToLower();
-            String? password = body?.password;
-            String? request = body?.request;
-            Boolean tos_pp_agree = body?.tos_pp_agree ?? false;
-            String? username = body?.username?.Trim();
+            string? apf = body?.apf;
+            string? email = body?.email?.Trim().ToLower();
+            string? password = body?.password;
+            string? request = body?.request;
+            bool tos_pp_agree = body?.tos_pp_agree ?? false;
+            string? username = body?.username?.Trim();
 
-            if (String.IsNullOrEmpty(username) || String.IsNullOrEmpty(email) || String.IsNullOrEmpty(password)) {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password)) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username, email, and password are required" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
@@ -56,7 +58,7 @@ public static class AuthEndpoints {
             }
 
             // Check if username or email already exists
-            Boolean userExists = await usersDb.Users.AnyAsync(u => u.Username == username || u.Email == email);
+            bool userExists = await usersDb.Users.AnyAsync(u => u.Username == username || u.Email == email);
             if (userExists) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username or email already exists" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
@@ -64,12 +66,12 @@ public static class AuthEndpoints {
             }
 
             // Hash the password
-            String passwordHash = AuthHelpers.HashPassword(password);
+            string passwordHash = AuthHelpers.HashPassword(password);
 
             // Create new user entity
             // Generate a numeric userId with length between 6 and 10 and ensure uniqueness
             Random random = new Random();
-            String userId;
+            string userId;
             do {
                 userId = random.Next(0, 1000000000).ToString("D10").TrimStart('0');
                 if (userId.Length < 6)
@@ -95,28 +97,28 @@ public static class AuthEndpoints {
     }
 
     public class RecaptchaRequest {
-        public String? recaptcha_response {
+        public string? recaptcha_response {
             get; set;
         }
     }
 
     public class SignupRequest {
-        public String? apf {
+        public string? apf {
             get; set;
         }
-        public String? email {
+        public string? email {
             get; set;
         }
-        public String? password {
+        public string? password {
             get; set;
         }
-        public String? request {
+        public string? request {
             get; set;
         }
-        public Boolean tos_pp_agree {
+        public bool tos_pp_agree {
             get; set;
         }
-        public String? username {
+        public string? username {
             get; set;
         }
     }

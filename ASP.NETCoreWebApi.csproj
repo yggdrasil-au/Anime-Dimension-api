@@ -2,11 +2,7 @@
 
   <PropertyGroup>
     <!-- changed to multi-target -->
-    <TargetFrameworks>
-        <!-- net8.0;
-        net9.0; -->
-        net10.0;
-    </TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <UserSecretsId>176e78ba-2d90-49b3-b7c9-0ef2a477af82</UserSecretsId>
@@ -98,5 +94,8 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="RestSharp" Version="113.0.0" />
   </ItemGroup>
 </Project>
