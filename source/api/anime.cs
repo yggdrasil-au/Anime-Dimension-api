@@ -46,6 +46,34 @@ public static class AnimeEndpoints {
             }
         });
 
+        // ssg-csr all page Post all anime data for csr
+        app.MapPost("/api/anime/all", (AnimeDbOptions db) => {
+            try {
+                System.Collections.Generic.List<AnimeDto> animes = new System.Collections.Generic.List<AnimeDto>();
+                using Microsoft.Data.Sqlite.SqliteConnection conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={db.DbPath}");
+                conn.Open();
+
+                System.Collections.Generic.List<string> slugs = new System.Collections.Generic.List<string>();
+                using (Microsoft.Data.Sqlite.SqliteCommand cmd = conn.CreateCommand()) {
+                    cmd.CommandText = "SELECT slug FROM anime ORDER BY title ASC;";
+                    using Microsoft.Data.Sqlite.SqliteDataReader reader = cmd.ExecuteReader();
+                    while (reader.Read()) {
+                        slugs.Add(reader.GetString(0));
+                    }
+                }
+
+                foreach (string slug in slugs) {
+                    AnimeDto? dto = GetAnimeBySlug(conn, slug);
+                    if (dto != null)
+                        animes.Add(dto);
+                }
+
+                return Results.Json(animes.ToArray(), (JsonTypeInfo<AnimeEndpoints.AnimeDto[]>)AppJsonContext.Default.GetTypeInfo(typeof(AnimeEndpoints.AnimeDto[]))!);
+            } catch (Exception ex) {
+                return Results.Problem($"Failed to query anime list: {ex.Message}");
+            }
+        });
+
     }
 
     static bool ColumnExists(Microsoft.Data.Sqlite.SqliteConnection conn, string table, string column) {
@@ -93,7 +121,10 @@ public static class AnimeEndpoints {
     static AnimeDto? GetAnimeBySlug(string dbPath, string slug) {
         using Microsoft.Data.Sqlite.SqliteConnection conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}");
         conn.Open();
+        return GetAnimeBySlug(conn, slug);
+    }
 
+    static AnimeDto? GetAnimeBySlug(Microsoft.Data.Sqlite.SqliteConnection conn, string slug) {
         // Fetch base row
         using Microsoft.Data.Sqlite.SqliteCommand cmd = conn.CreateCommand();
         bool hasTooltip = ColumnExists(conn, "anime", "tooltip");

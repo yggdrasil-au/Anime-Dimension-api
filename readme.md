@@ -72,7 +72,7 @@ Below is an at-a-glance map of implemented endpoints. For full details, see the 
 
 - Auth & Login
 	- `POST /api/auth/signup-token` – issues a temporary token for signup flows
-	- `PUT  /api/login/validateState` – validates login state token
+	- `PUT  /api/login/validateState?caller=` – validates login state token
 	- `POST /api/logout` – clears session by cookie or request body token
 
 - Users

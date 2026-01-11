@@ -23,6 +23,8 @@ namespace ASP.NETCoreWebApi.Serialization;
 [JsonSerializable(typeof(ASP.NETCoreWebApi.DTOs.SuggestionItem[]))]
 [JsonSerializable(typeof(ASP.NETCoreWebApi.DTOs.DebugNotFoundResponse))]
 [JsonSerializable(typeof(ASP.NETCoreWebApi.AnimeEndpoints.AnimeDto))]
+[JsonSerializable(typeof(ASP.NETCoreWebApi.AnimeEndpoints.AnimeDto[]))]
+[JsonSerializable(typeof(ASP.NETCoreWebApi.LoginEndpoints.AnimeLoginRequest))]
 [JsonSerializable(typeof(ASP.NETCoreWebApi.Models.DocData))]
 [JsonSerializable(typeof(ASP.NETCoreWebApi.Models.NotificationDto))]
 [JsonSerializable(typeof(ASP.NETCoreWebApi.Models.NotificationData))]
