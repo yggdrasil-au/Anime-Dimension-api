@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ASP.NETCoreWebApi.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Microsoft.EntityFrameworkCore;
 
 namespace ASP.NETCoreWebApi;
 

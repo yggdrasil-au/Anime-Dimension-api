@@ -1,75 +1,25 @@
 // Program.cs
 
-global using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
-
+using System;
 using System.IO;
 using System.Collections.Generic;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 
-
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Builder;
-using System;
 
 namespace ASP.NETCoreWebApi;
 
-internal class Program {
-    protected Program() {}
-
-    static void ValidateSqliteConnection(string dbPath) {
-        using Microsoft.Data.Sqlite.SqliteConnection? connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
-        try {
-            connection.Open();
-            using Microsoft.Data.Sqlite.SqliteCommand cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1;";
-            cmd.ExecuteScalar(); // Run a trivial query
-        } catch (System.Exception ex) {
-            throw new System.InvalidOperationException(message: $"Failed to open or validate SQLite DB at {dbPath}", ex);
-        }
-    }
-    static bool TableExists(string dbPath, string tableName) {
-        using Microsoft.Data.Sqlite.SqliteConnection conn = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
-        conn.Open();
-
-        using Microsoft.Data.Sqlite.SqliteCommand cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = $table";
-        cmd.Parameters.AddWithValue(parameterName: "$table", tableName);
-
-        long? result = (long?)cmd.ExecuteScalar();
-        return result > 0;
-    }
-
-    static bool FilesAreIdentical(string a, string b) {
-        if (!File.Exists(a) || !File.Exists(b)) {
-            return false;
-        }
-        FileInfo fa = new FileInfo(a);
-        FileInfo fb = new FileInfo(b);
-        if (fa.Length != fb.Length) {
-            return false;
-        }
-        using System.Security.Cryptography.SHA256 ha = System.Security.Cryptography.SHA256.Create();
-        using System.Security.Cryptography.SHA256 hb = System.Security.Cryptography.SHA256.Create();
-        using FileStream sa = File.OpenRead(a);
-        using FileStream sb = File.OpenRead(b);
-        byte[] da = ha.ComputeHash(sa);
-        byte[] db = hb.ComputeHash(sb);
-        return System.Collections.StructuralComparisons.StructuralEqualityComparer.Equals(da, db);
-    }
+internal class Program() {
 
     public static void Main(string[] args) {
         try {
-            // Set the culture to ensure consistent date and number formatting
-            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo("en-US");
-            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = new System.Globalization.CultureInfo("en-US");
-
-            Microsoft.AspNetCore.Builder.WebApplicationBuilder builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
-
-            // Tell .NET to load your secret file if it exists
-            builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
 
             // --- Service Configuration ---
             // Resolve important directories
@@ -81,34 +31,6 @@ internal class Program {
             Console.WriteLine($"Info: Executable directory: {exeDir}");
             string cwdDir = Directory.GetCurrentDirectory();
             Console.WriteLine($"Info: Current working directory: {cwdDir}");
-
-            // Helper to pick the first existing file from a list of candidates
-            static string? FirstExisting(params string[] candidates) {
-                foreach (string p in candidates) {
-                    try {
-                        if (!string.IsNullOrWhiteSpace(p) && File.Exists(p))
-                            return Path.GetFullPath(p);
-                    } catch {
-                        Console.Error.WriteLine($"Warning: error checking existence of file path: {p}");
-                    }
-                }
-                return null;
-            }
-
-            static string? ProbeForAnimeDimensionDb(IEnumerable<string> dirs) {
-                foreach (string d in dirs) {
-                    if (string.IsNullOrWhiteSpace(d))
-                        continue;
-                    try {
-                        string a = Path.Combine(d, "anime-dimension.sqlite3");
-                        if (File.Exists(a))
-                            return Path.GetFullPath(a);
-                    } catch {
-                        /* ignore */
-                    }
-                }
-                return null;
-            }
 
             // Build a probe list of likely directories
             List<string?> probeDirs = new List<string?> {
@@ -220,60 +142,15 @@ internal class Program {
                 throw new System.Exception(message: "Table 'Users' not found in users.db");
             }
 
-            // Also expose the resolved anime DB path for endpoints that query raw SQLite
-            builder.Services.AddSingleton(implementationInstance: new AnimeDbOptions { DbPath = animeDbPath });
 
-            // Register the main anime DB context
-            builder.Services.AddDbContext<Sql.ApiDbContext>(options => options.UseSqlite($"Data Source={animeDbPath}"));
+            // Set the culture to ensure consistent date and number formatting
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo("en-US");
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = new System.Globalization.CultureInfo("en-US");
 
-            // Register users.db (separate)
-            builder.Services.AddDbContext<Sql.UsersDbContext>(options => options.UseSqlite($"Data Source={usersDbPath}"));
+            Microsoft.AspNetCore.Builder.WebApplicationBuilder builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
-            // 1. Add HttpClientFactory for making HTTP requests to external APIs
-            builder.Services.AddHttpClient();
 
-            // 3. Add developer exception filter for detailed database error pages during development
-            builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
-            // Register source-generated JSON metadata to make trimming safe.
-            builder.Services.ConfigureHttpJsonOptions (options => {
-                options.SerializerOptions.TypeInfoResolverChain.Insert(0, ASP.NETCoreWebApi.Serialization.AppJsonContext.Default);
-            });
-
-            builder.Services.AddCors(options => {
-                options.AddDefaultPolicy(policy => {
-                    policy.SetIsOriginAllowed(origin => {
-                        // Allow production domains
-                        if (origin == "https://anime-dimension.com" || origin.EndsWith(".anime-dimension.com", System.StringComparison.OrdinalIgnoreCase)) {
-                            return true;
-                        }
-                        // Capacitor (mobile) // IOS and Android respectively
-                        if (origin == "capacitor://anime-dimension.com" || origin == "https://localhost.com") {
-                            return true;
-                        }
-                        // Local development: allow common Astro/Vite ports and localhost/127.0.0.1 (http and https)
-                        try {
-                            System.Uri u = new System.Uri(origin);
-                            bool isLocalHost = u.Host.Equals("localhost", System.StringComparison.OrdinalIgnoreCase) || u.Host.Equals("127.0.0.1");
-                            if (isLocalHost) {
-                                // Typical ports: Astro 4321, Vite 5173/3000, custom 8080/3001
-                                HashSet<int> allowedPorts = new HashSet<int> { 80, 443, 3000, 3001, 4321, 5173, 8080 };
-                                if (allowedPorts.Contains(u.Port)) {
-                                    return true;
-                                }
-                            }
-                        } catch {
-                            Console.Error.WriteLine($"Warning: failed to parse Origin header value: {origin}");
-                        }
-
-                        // Explicit localhost HTTPS without port
-                        return origin == "https://localhost";
-                    })
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
-                });
-            });
+            builder = buildServer(builder, animeDbPath: animeDbPath, usersDbPath: usersDbPath);
 
             Microsoft.AspNetCore.Builder.WebApplication app = builder.Build();
 
@@ -320,4 +197,147 @@ internal class Program {
             System.Environment.Exit(1);
         }
     }
+
+    // Helper to pick the first existing file from a list of candidates
+    static string? FirstExisting(params string[] candidates) {
+        foreach (string p in candidates) {
+            try {
+                if (!string.IsNullOrWhiteSpace(p) && File.Exists(p))
+                    return Path.GetFullPath(p);
+            } catch {
+                Console.Error.WriteLine($"Warning: error checking existence of file path: {p}");
+            }
+        }
+        return null;
+    }
+
+    static string? ProbeForAnimeDimensionDb(IEnumerable<string> dirs) {
+        foreach (string d in dirs) {
+            if (string.IsNullOrWhiteSpace(d))
+                continue;
+            try {
+                string a = Path.Combine(d, "anime-dimension.sqlite3");
+                if (File.Exists(a))
+                    return Path.GetFullPath(a);
+            } catch {
+                /* ignore */
+            }
+        }
+        return null;
+    }
+
+
+    private static WebApplicationBuilder buildServer(WebApplicationBuilder builder, string animeDbPath, string usersDbPath) {
+
+        // Tell .NET to load your secret file if it exists
+        builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
+
+        // Configure Kestrel to listen on any IP on port 5000 (HTTP only) in release
+        if (!builder.Environment.IsDevelopment()) {
+            builder.WebHost.ConfigureKestrel(serverOptions => {
+                serverOptions.Listen(System.Net.IPAddress.Any, 5000);
+            });
+        }
+
+        // Also expose the resolved anime DB path for endpoints that query raw SQLite
+        builder.Services.AddSingleton(implementationInstance: new AnimeDbOptions { DbPath = animeDbPath });
+
+        // Register the main anime DB context
+        builder.Services.AddDbContext<Sql.ApiDbContext>(options => options.UseSqlite($"Data Source={animeDbPath}"));
+
+        // Register users.db (separate)
+        builder.Services.AddDbContext<Sql.UsersDbContext>(options => options.UseSqlite($"Data Source={usersDbPath}"));
+
+        // 1. Add HttpClientFactory for making HTTP requests to external APIs
+        builder.Services.AddHttpClient();
+
+        // 3. Add developer exception filter for detailed database error pages during development
+        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+        // Register source-generated JSON metadata to make trimming safe.
+        builder.Services.ConfigureHttpJsonOptions (options => {
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, ASP.NETCoreWebApi.Serialization.AppJsonContext.Default);
+        });
+
+        builder.Services.AddCors(options => {
+            options.AddDefaultPolicy(policy => {
+                policy.SetIsOriginAllowed(origin => {
+                    // Allow production domains
+                    if (origin == "https://anime-dimension.com" || origin.EndsWith(".anime-dimension.com", System.StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                    // Capacitor (mobile) // IOS and Android respectively
+                    if (origin == "capacitor://anime-dimension.com" || origin == "https://localhost.com") {
+                        return true;
+                    }
+                    // Local development: allow common Astro/Vite ports and localhost/127.0.0.1 (http and https)
+                    try {
+                        System.Uri u = new System.Uri(origin);
+                        bool isLocalHost = u.Host.Equals("localhost", System.StringComparison.OrdinalIgnoreCase) || u.Host.Equals("127.0.0.1");
+                        if (isLocalHost) {
+                            // Typical ports: Astro 4321, Vite 5173/3000, custom 8080/3001
+                            HashSet<int> allowedPorts = new HashSet<int> { 80, 443, 3000, 3001, 4321, 5173, 8080 };
+                            if (allowedPorts.Contains(u.Port)) {
+                                return true;
+                            }
+                        }
+                    } catch {
+                        Console.Error.WriteLine($"Warning: failed to parse Origin header value: {origin}");
+                    }
+
+                    // Explicit localhost HTTPS without port
+                    return origin == "https://localhost";
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+            });
+        });
+
+
+        return builder;
+    }
+
+    private static void ValidateSqliteConnection(string dbPath) {
+        using Microsoft.Data.Sqlite.SqliteConnection? connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
+        try {
+            connection.Open();
+            using Microsoft.Data.Sqlite.SqliteCommand cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1;";
+            cmd.ExecuteScalar(); // Run a trivial query
+        } catch (System.Exception ex) {
+            throw new System.InvalidOperationException(message: $"Failed to open or validate SQLite DB at {dbPath}", ex);
+        }
+    }
+
+    private static bool TableExists(string dbPath, string tableName) {
+        using Microsoft.Data.Sqlite.SqliteConnection conn = new Microsoft.Data.Sqlite.SqliteConnection(connectionString: $"Data Source={dbPath}");
+        conn.Open();
+
+        using Microsoft.Data.Sqlite.SqliteCommand cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = $table";
+        cmd.Parameters.AddWithValue(parameterName: "$table", tableName);
+
+        long? result = (long?)cmd.ExecuteScalar();
+        return result > 0;
+    }
+
+    private static bool FilesAreIdentical(string a, string b) {
+        if (!File.Exists(a) || !File.Exists(b)) {
+            return false;
+        }
+        FileInfo fa = new FileInfo(a);
+        FileInfo fb = new FileInfo(b);
+        if (fa.Length != fb.Length) {
+            return false;
+        }
+        using System.Security.Cryptography.SHA256 ha = System.Security.Cryptography.SHA256.Create();
+        using System.Security.Cryptography.SHA256 hb = System.Security.Cryptography.SHA256.Create();
+        using FileStream sa = File.OpenRead(a);
+        using FileStream sb = File.OpenRead(b);
+        byte[] da = ha.ComputeHash(sa);
+        byte[] db = hb.ComputeHash(sb);
+        return System.Collections.StructuralComparisons.StructuralEqualityComparer.Equals(da, db);
+    }
+
 }
