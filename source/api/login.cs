@@ -89,27 +89,27 @@ public static class LoginEndpoints {
                     statusCode: 415);
             }
             AnimeLoginRequest? body = await req.ReadFromJsonAsync<AnimeLoginRequest>();
-            string? username = body?._username;
+            string? userlogin = body?._username?.Trim();
             string? password = body?._password;
 
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
-                logger.LogInformation("400: Username or password missing");
-                return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username and password must be provided" },
+            if (string.IsNullOrEmpty(userlogin) || string.IsNullOrEmpty(password)) {
+                logger.LogInformation("400: User login or password missing");
+                return Results.Json(new DTOs.ErrResponse { status = "err", msg = "User login and password must be provided" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
-            Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username);
+            Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == userlogin || u.Email == userlogin.ToLower());
 
             if (user == null || !helpers.AuthHelpers.VerifyPassword(password, user.PasswordHash)) {
-                logger.LogInformation("400: Invalid login attempt for username '{Username}'", username);
+                logger.LogInformation("400: Invalid login attempt for user login '{UserLogin}'", userlogin);
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Your username or password was incorrect" },
                     (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 200);
             }
 
             /* if (!user.IsActive) {
-                logger.LogInformation("403: Login attempt for inactive account '{Username}'", username);
+                logger.LogInformation("403: Login attempt for inactive account '{UserLogin}'", userlogin);
                 return Results.Json(new {
                     status = "err",
                     msg = "You need to activate your account before you can log in."
@@ -119,7 +119,7 @@ public static class LoginEndpoints {
             // Statically trigger TFA for a specific test user. In a real application,
             // you would check a flag on the user object, like `if (user.IsTfaEnabled)`.
             if (user.Username.Equals("testy", StringComparison.OrdinalIgnoreCase)) {
-                logger.LogInformation("400: TFA required for user '{Username}'", username);
+                logger.LogInformation("400: TFA required for user login '{UserLogin}'", userlogin);
                 return Results.Json(new DTOs.OkResponse<object> { data = new { tfa = true } },
                     (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!,
                     statusCode: 400);
@@ -130,15 +130,21 @@ public static class LoginEndpoints {
             DateTimeOffset now = DateTimeOffset.UtcNow;
 
             List<Models.UserSession> existingSessions = await usersDb.UserSessions
-              .Where(s => s.UserId == user.UserId)
-              .OrderBy(s => s.CreatedAt)
-              .ToListAsync();
+                .Where(s => s.UserId == user.UserId)
+                .OrderBy(s => s.CreatedAt)
+                .ToListAsync();
 
-            existingSessions.RemoveAll(s => s.ExpiresAt < now.DateTime);
+            // Remove expired sessions from the database, not just the in-memory list.
+            var expiredSessions = existingSessions.Where(s => s.ExpiresAt < now.DateTime).ToList();
+            if (expiredSessions.Count > 0) {
+                    usersDb.UserSessions.RemoveRange(expiredSessions);
+                    // Also remove from the local list so counts below are accurate
+                    existingSessions.RemoveAll(s => s.ExpiresAt < now.DateTime);
+            }
 
             if (existingSessions.Count >= MaxUserSessions) {
-                Models.UserSession oldestSession = existingSessions[0];
-                usersDb.UserSessions.Remove(oldestSession);
+                    Models.UserSession oldestSession = existingSessions[0];
+                    usersDb.UserSessions.Remove(oldestSession);
             }
 
             Models.UserSession session = new Models.UserSession {
@@ -153,12 +159,18 @@ public static class LoginEndpoints {
 
             string? platform = req.Headers["X-Platform"].FirstOrDefault();
 
-            // Set the session token in a secure, HttpOnly cookie
+            // Set the session token in a secure, HttpOnly cookie.
+            // NOTE: `SameSite` controls whether the cookie is sent on cross-site requests.
+            // - Use `SameSiteMode.None` + `Secure = true` when your API and frontend are on
+            //   entirely different origins (e.g. api.example.com and example.com on different registrable domains).
+            // - If your frontend is hosted on a sibling subdomain (e.g. app.example.com and api.example.com),
+            //   prefer `SameSiteMode.Lax` (or `Strict`) for improved CSRF protection.
+            // If you want to change this behavior based on deployment, consider making
+            // the SameSite mode configurable via environment/config.
             res.Cookies.Append("session_token", sessionToken, new CookieOptions {
                 HttpOnly = true,
                 Secure = true,
-                // Use SameSite=None to allow cross-site requests from a separate frontend origin
-                SameSite = SameSiteMode.None,
+                SameSite = SameSiteMode.Strict,
                 Expires = session.ExpiresAt
             });
 
