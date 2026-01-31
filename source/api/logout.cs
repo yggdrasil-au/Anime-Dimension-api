@@ -5,9 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 
-using System.Text.Json.Serialization.Metadata;
-
-using ASP.NETCoreWebApi.Serialization;
 
 namespace ASP.NETCoreWebApi;
 
@@ -30,8 +27,7 @@ public static class LogoutEndpoints {
             // 3. If we still don't have a token, we can't do anything.
             if (string.IsNullOrEmpty(sessionToken)) {
                 // Silently succeed, as the user is effectively logged out.
-                return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = "No active session found." },
-                    (JsonTypeInfo<DTOs.SimpleStatusResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SimpleStatusResponse))!);
+                return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = "No active session found." });
             }
 
             // 4. Find and remove the session from the database
@@ -45,8 +41,7 @@ public static class LogoutEndpoints {
             // 5. Explicitly delete the cookie from the browser
             res.Cookies.Delete("session_token");
 
-            return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null },
-                (JsonTypeInfo<DTOs.SimpleStatusResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SimpleStatusResponse))!);
+            return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null });
         });
     }
 

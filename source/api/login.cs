@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
-using ASP.NETCoreWebApi.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace ASP.NETCoreWebApi;
@@ -41,7 +39,6 @@ public static class LoginEndpoints {
                 if (string.IsNullOrEmpty(token)) {
                     logger.LogInformation("401: Missing session token");
                     return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Missing session token" },
-                        (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                         statusCode: 401);
                 }
 
@@ -55,7 +52,6 @@ public static class LoginEndpoints {
                     }
                     logger.LogInformation("401: Invalid or expired session token");
                     return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or expired session token" },
-                        (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                         statusCode: 401);
                 }
 
@@ -66,18 +62,15 @@ public static class LoginEndpoints {
                 if (user == null) {
                     logger.LogWarning("404: Session valid but user not found (UserId: {UserId})", session.UserId);
                     return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Session is valid, but user not found" },
-                        (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                         statusCode: 404);
                 }
 
                 logger.LogInformation("200: Session validated for user {UserId} ({Username})", user.UserId, user.Username);
                 return Results.Json(new DTOs.OkResponse<DTOs.ValidateStateData> { data = new DTOs.ValidateStateData { user_id = session.UserId, user_name = user.Username, expiresAt = session.ExpiresAt } },
-                    (JsonTypeInfo<DTOs.OkResponse<DTOs.ValidateStateData>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.ValidateStateData>))!,
                     statusCode: 200);
             } catch (Exception ex) {
                 logger.LogError("500: Exception during session validation: {Message}", ex.Message);
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "An error occurred while validating the session" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 500);
             }
         });
@@ -85,7 +78,6 @@ public static class LoginEndpoints {
         app.MapPut("/api/login", async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
             if (!req.HasJsonContentType()) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Request must be of type application/json" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 415);
             }
             AnimeLoginRequest? body = await req.ReadFromJsonAsync<AnimeLoginRequest>();
@@ -95,7 +87,6 @@ public static class LoginEndpoints {
             if (string.IsNullOrEmpty(userlogin) || string.IsNullOrEmpty(password)) {
                 logger.LogInformation("400: User login or password missing");
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "User login and password must be provided" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
@@ -104,7 +95,6 @@ public static class LoginEndpoints {
             if (user == null || !helpers.AuthHelpers.VerifyPassword(password, user.PasswordHash)) {
                 logger.LogInformation("400: Invalid login attempt for user login '{UserLogin}'", userlogin);
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Your username or password was incorrect" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 200);
             }
 
@@ -121,7 +111,6 @@ public static class LoginEndpoints {
             if (user.Username.Equals("testy", StringComparison.OrdinalIgnoreCase)) {
                 logger.LogInformation("400: TFA required for user login '{UserLogin}'", userlogin);
                 return Results.Json(new DTOs.OkResponse<object> { data = new { tfa = true } },
-                    (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!,
                     statusCode: 400);
             }
 
@@ -176,16 +165,13 @@ public static class LoginEndpoints {
 
             if (!string.IsNullOrEmpty(platform) && platform == "web") {
                 logger.LogInformation("200: Login success (web) for user {UserId} ({Username})", user.UserId, user.Username);
-                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> { data = new DTOs.LoginOkData { user_id = user.UserId, user_name = user.Username } },
-                    (JsonTypeInfo<DTOs.OkResponse<DTOs.LoginOkData>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.LoginOkData>))!);
+                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> { data = new DTOs.LoginOkData { user_id = user.UserId, user_name = user.Username } });
             } else if (!string.IsNullOrEmpty(platform) && (platform == "android" || platform == "ios")) {
                 logger.LogInformation("200: Login success ({Platform}) for user {UserId} ({Username})", platform, user.UserId, user.Username);
-                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkDataMobile> { data = new DTOs.LoginOkDataMobile { user_id = user.UserId, user_name = user.Username, session_token = sessionToken } },
-                    (JsonTypeInfo<DTOs.OkResponse<DTOs.LoginOkDataMobile>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.LoginOkDataMobile>))!);
+                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkDataMobile> { data = new DTOs.LoginOkDataMobile { user_id = user.UserId, user_name = user.Username, session_token = sessionToken } });
             } else {
                 logger.LogInformation("400: Unsupported platform '{Platform}'", platform);
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Unsupported platform" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
         });

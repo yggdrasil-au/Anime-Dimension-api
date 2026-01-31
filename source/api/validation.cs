@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using System;
-using ASP.NETCoreWebApi.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace ASP.NETCoreWebApi;
@@ -23,7 +21,6 @@ public static class ValidationsEndpoints {
 
             if (string.IsNullOrWhiteSpace(username) || !Regex.IsMatch(username, @"^[a-zA-Z0-9]+$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Only letters or numbers" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
@@ -31,11 +28,9 @@ public static class ValidationsEndpoints {
 
             if (userExists) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Username is unavailable" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             } else {
                 return Results.Json(new DTOs.OkResponse<string?> { data = null },
-                    (JsonTypeInfo<DTOs.OkResponse<string?>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<string?>))!,
                     statusCode: 200);
             }
         });

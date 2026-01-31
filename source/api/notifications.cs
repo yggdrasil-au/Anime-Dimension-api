@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
-using ASP.NETCoreWebApi.Serialization;
 
 public static class NotificationsEndpoints {
     public static void MapNotificationsEndpoints(this IEndpointRouteBuilder app) {
@@ -29,8 +27,10 @@ public static class NotificationsEndpoints {
             DateTime now = DateTime.UtcNow;
 
             System.Collections.Generic.IEnumerable<NotificationDto> dtoList = notifications.Select(n => {
-                JsonTypeInfo<DocData> docInfo = (JsonTypeInfo<DocData>)AppJsonContext.Default.GetTypeInfo(typeof(DocData))!;
-                DocData? doc = JsonSerializer.Deserialize(n.DocJson ?? "{}", docInfo);
+                // Standard reflection-based deserialization
+                DocData? doc = JsonSerializer.Deserialize<DocData>(n.DocJson ?? "{}", new JsonSerializerOptions { 
+                    PropertyNameCaseInsensitive = true 
+                });
 
                 return new NotificationDto {
                     state = n.State,
@@ -52,7 +52,7 @@ public static class NotificationsEndpoints {
                     new_count = 0
                 }
             };
-            return Results.Json(payload, (JsonTypeInfo<DTOs.NotificationsEnvelope>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.NotificationsEnvelope))!);
+            return Results.Json(payload);
         });
     }
 

@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
-using ASP.NETCoreWebApi.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 
 namespace ASP.NETCoreWebApi;
@@ -22,7 +20,7 @@ public static class AnimeEndpoints {
                 AnimeDto? dto = GetAnimeBySlug(db.DbPath, slug);
                 return dto is null
                 ? Results.NotFound(new { status = "error", msg = "Anime not found." })
-                : Results.Json(dto, (JsonTypeInfo<AnimeEndpoints.AnimeDto>)AppJsonContext.Default.GetTypeInfo(typeof(AnimeEndpoints.AnimeDto))!);
+                : Results.Json(dto);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query anime: {ex.Message}");
             }
@@ -40,7 +38,7 @@ public static class AnimeEndpoints {
                 AnimeDto? dto = GetAnimeBySlug(db.DbPath, slug);
                 return dto is null
                 ? Results.NotFound(new { status = "error", msg = "Anime not found." })
-                : Results.Json(dto, (JsonTypeInfo<AnimeEndpoints.AnimeDto>)AppJsonContext.Default.GetTypeInfo(typeof(AnimeEndpoints.AnimeDto))!);
+                : Results.Json(dto);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query anime: {ex.Message}");
             }
@@ -68,7 +66,7 @@ public static class AnimeEndpoints {
                         animes.Add(dto);
                 }
 
-                return Results.Json(animes.ToArray(), (JsonTypeInfo<AnimeEndpoints.AnimeDto[]>)AppJsonContext.Default.GetTypeInfo(typeof(AnimeEndpoints.AnimeDto[]))!);
+                return Results.Json(animes.ToArray());
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query anime list: {ex.Message}");
             }

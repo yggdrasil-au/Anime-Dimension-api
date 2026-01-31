@@ -9,13 +9,10 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Text.Json.Serialization.Metadata;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Text;
-
-using ASP.NETCoreWebApi.Serialization;
 
 
 namespace ASP.NETCoreWebApi;
@@ -38,9 +35,7 @@ public static class AuthEndpoints {
             };*/
 
             var payload = new DTOs.OkResponse<DTOs.SignupTokenData[]>( ) { data = new[] { new DTOs.SignupTokenData { token = "16363f3d-1cb0-4ebd-9f38-f9034dc9c8b3", duration = 3600 } } };
-            return Results.Json(payload,
-                (JsonTypeInfo<DTOs.OkResponse<DTOs.SignupTokenData[]>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.SignupTokenData[]>))!,
-                statusCode: 200);
+            return Results.Json(payload, statusCode: 200);
         });
 
         app.MapPost("/api/auth/signup", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
@@ -114,18 +109,14 @@ public static class AuthEndpoints {
             }
 
 
-            return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null },
-                (JsonTypeInfo<DTOs.SimpleStatusResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SimpleStatusResponse))!,
-                statusCode: 200);
+            return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null }, statusCode: 200);
         });
     }
 
     // --- Helper Methods ---
 
     private static IResult ErrorResult(string message) {
-        return Results.Json(new DTOs.ErrResponse { status = "err", msg = message },
-            (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
-            statusCode: 400);
+        return Results.Json(new DTOs.ErrResponse { status = "err", msg = message }, statusCode: 400);
     }
 
     private static async Task<string> GenerateUniqueUserIdAsync(Sql.UsersDbContext db) {

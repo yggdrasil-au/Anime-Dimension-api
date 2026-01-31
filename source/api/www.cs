@@ -7,8 +7,6 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
-using ASP.NETCoreWebApi.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 
 namespace ASP.NETCoreWebApi;
@@ -86,7 +84,6 @@ public static class WebEndpoints {
             cwd = System.IO.Directory.GetCurrentDirectory()
         };
         return Microsoft.AspNetCore.Http.Results.Json(payload,
-            (JsonTypeInfo<DTOs.DebugNotFoundResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.DebugNotFoundResponse))!,
             contentType: "application/json; charset=utf-8", statusCode: 404);
         //#else
         //return Results.StatusCode(StatusCodes.Status500InternalServerError);

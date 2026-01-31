@@ -8,7 +8,7 @@
         <UserSecretsId>176e78ba-2d90-49b3-b7c9-0ef2a477af82</UserSecretsId>
     </PropertyGroup>
 
-    <!-- Ensure local .sqlite3 files are copied to build and publish output -->
+    <!-- Ensure local .sqlite3 files are copied to build and publish output - ->
     <ItemGroup>
         <Content Include="../db/anime-dimension.sqlite3">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -17,7 +17,7 @@
         </Content>
     </ItemGroup>
 
-    <!-- for debug build, include the local users.db -->
+    <!- - for debug build, include the local users.db  - ->
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <Content Include="../db/users.db">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -25,50 +25,18 @@
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
         </Content>
     </ItemGroup>
+    -->
 
-    <!-- NEW: Copy www\api assets to build and publish outputs, and keep them outside the single-file bundle -->
-    <ItemGroup Condition="Exists('www\api')">
-        <Content Include="www\api\**\*.html">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-        <Content Include="www\api\**\*.css">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-        <Content Include="www\api\**\*.js">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-        <Content Include="www\api\**\*.woff">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-        <Content Include="www\api\**\*.woff2">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-        <Content Include="www\api\**\*.svg">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
-    </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="RestSharp" Version="113.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.1" />
+        <PackageReference Include="RestSharp" Version="113.1.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.2" />
 
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
             <IncludeAssets>build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
 
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
     </ItemGroup>
 
 </Project>

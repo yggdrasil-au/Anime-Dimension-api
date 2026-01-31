@@ -119,14 +119,11 @@ internal class Program() {
                     $"exeDir={exeDir}",
                     $"cwdDir={cwdDir}",
                     $"baseDir={baseDir}",
-                    //$"env ANIME_DIMENSION_DB_PATH={System.Environment.GetEnvironmentVariable("ANIME_DIMENSION_DB_PATH") ?? "<not-set>"}",
-                    //$"env ANIME_DB_PATH={System.Environment.GetEnvironmentVariable("ANIME_DB_PATH") ?? "<not-set>"}"
                 };
                 throw new FileNotFoundException (
                     "Missing required anime-dimension.sqlite3 file. Probed but not found.\n" +
                     $"Last resolved path: {animeDbPath ?? "<unspecified>"}\n" +
-                    string.Join("\n", diag) +
-                    "\nHint: set ANIME_DIMENSION_DB_PATH to an absolute path for anime-dimension.sqlite3"
+                    string.Join("\n", diag)
                 );
             }
 
@@ -151,6 +148,13 @@ internal class Program() {
 
 
             builder = buildServer(builder, animeDbPath: animeDbPath, usersDbPath: usersDbPath);
+
+            builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+            {
+                options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+                options.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+                options.SerializerOptions.WriteIndented = true; 
+            });
 
             Microsoft.AspNetCore.Builder.WebApplication app = builder.Build();
 
@@ -253,11 +257,6 @@ internal class Program() {
 
         // 3. Add developer exception filter for detailed database error pages during development
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
-        // Register source-generated JSON metadata to make trimming safe.
-        builder.Services.ConfigureHttpJsonOptions (options => {
-            options.SerializerOptions.TypeInfoResolverChain.Insert(0, ASP.NETCoreWebApi.Serialization.AppJsonContext.Default);
-        });
 
         builder.Services.AddCors(options => {
             options.AddDefaultPolicy(policy => {

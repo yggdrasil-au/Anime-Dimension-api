@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using System;
 using System.Collections.Generic;
-using ASP.NETCoreWebApi.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 
 namespace ASP.NETCoreWebApi;
@@ -182,8 +180,7 @@ public static class SuggestionsEndpoints {
                     });
                 }
                 DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list, success = true };
-                return Results.Json(resp,
-                    (JsonTypeInfo<DTOs.SuggestionsListResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SuggestionsListResponse))!);
+                return Results.Json(resp);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query suggestions: {ex.Message}");
             }
@@ -345,8 +342,7 @@ public static class SuggestionsEndpoints {
                     });
                 }
                 DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list };
-                return Results.Json(resp,
-                    (JsonTypeInfo<DTOs.SuggestionsListResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SuggestionsListResponse))!);
+                return Results.Json(resp);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query popular: {ex.Message}");
             }
@@ -512,8 +508,7 @@ public static class SuggestionsEndpoints {
                     });
                 }
                 DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list, season = season, success = true };
-                return Results.Json(resp,
-                    (JsonTypeInfo<DTOs.SuggestionsListResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SuggestionsListResponse))!);
+                return Results.Json(resp);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query this season: {ex.Message}");
             }
@@ -522,7 +517,7 @@ public static class SuggestionsEndpoints {
         // get anime related to user anime history, not implemented yet, simply return empty list
         app.MapPost("/api/suggestions/get_related", async (HttpRequest req, AnimeDbOptions db) => {
             DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = new List<DTOs.SuggestionItem>(), success = true };
-            return Results.Json(resp,(JsonTypeInfo<DTOs.SuggestionsListResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.SuggestionsListResponse))!);
+            return Results.Json(resp);
         });
 
     }

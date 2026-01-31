@@ -14,10 +14,6 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Text.Json.Serialization.Metadata;
-
-
-using ASP.NETCoreWebApi.Serialization;
 
 
 namespace ASP.NETCoreWebApi;
@@ -31,14 +27,12 @@ public static class UsersEndpoints {
             string uname = (req.Query["username"].ToString() ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(uname) || !Regex.IsMatch(uname, @"^[a-zA-Z0-9]+$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or missing username" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
             Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == uname);
             if (user == null) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "User not found" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 404);
             }
 
@@ -132,8 +126,7 @@ public static class UsersEndpoints {
                 ratings = ratingsMap,
                 ratings_total = ratingsTotal
             };
-            return Results.Json(new DTOs.OkResponse<DTOs.UserProfileData> { data = profile },
-                (JsonTypeInfo<DTOs.OkResponse<DTOs.UserProfileData>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.UserProfileData>))!);
+            return Results.Json(new DTOs.OkResponse<DTOs.UserProfileData> { data = profile });
         });
 
         // GET /api/users/me
@@ -141,21 +134,18 @@ public static class UsersEndpoints {
             string? token = req.Cookies["session_token"];
             if (string.IsNullOrEmpty(token)) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 401);
             }
 
             Models.UserSession? session = await usersDb.UserSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionToken == token);
             if (session == null || session.ExpiresAt < DateTime.UtcNow) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or expired session" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 401);
             }
 
             Models.User? user = await usersDb.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == session.UserId);
             if (user == null) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "User not found" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 404);
             }
 
@@ -163,8 +153,7 @@ public static class UsersEndpoints {
             string bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(user.UserId)}.webp";
 
             DTOs.UserMeData me = new DTOs.UserMeData { user_id = user.UserId, user_name = user.Username, avatar_url = avatarUrl, banner_url = bannerUrl };
-            return Results.Json(new DTOs.OkResponse<DTOs.UserMeData> { data = me },
-                (JsonTypeInfo<DTOs.OkResponse<DTOs.UserMeData>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<DTOs.UserMeData>))!);
+            return Results.Json(new DTOs.OkResponse<DTOs.UserMeData> { data = me });
         });
 
         // POST /api/users/me/avatar (multipart/form-data, field: avatar)
@@ -172,14 +161,12 @@ public static class UsersEndpoints {
             Models.User? me = await ResolveUserFromSession(req, usersDb);
             if (me == null)
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 401);
 
             IFormCollection form = await req.ReadFormAsync();
             IFormFile? file = form.Files["avatar"];
             if (file == null || file.Length == 0) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Missing avatar file" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
@@ -193,8 +180,7 @@ public static class UsersEndpoints {
             }
 
             string avatarUrl = $"/images/users/avatars/{Uri.EscapeDataString(me.UserId)}.webp";
-            return Results.Json(new DTOs.OkResponse<object> { data = new { avatar_url = avatarUrl } },
-                (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!);
+            return Results.Json(new DTOs.OkResponse<object> { data = new { avatar_url = avatarUrl } });
         });
 
         // POST /api/users/me/banner (multipart/form-data, field: banner)
@@ -202,14 +188,12 @@ public static class UsersEndpoints {
             Models.User? me = await ResolveUserFromSession(req, usersDb);
             if (me == null)
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 401);
 
             IFormCollection form = await req.ReadFormAsync();
             IFormFile? file = form.Files["banner"];
             if (file == null || file.Length == 0) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Missing banner file" },
-                    (JsonTypeInfo<DTOs.ErrResponse>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.ErrResponse))!,
                     statusCode: 400);
             }
 
@@ -223,8 +207,7 @@ public static class UsersEndpoints {
             }
 
             string bannerUrl = $"/assets/images/users/backgrounds/{Uri.EscapeDataString(me.UserId)}.webp";
-            return Results.Json(new DTOs.OkResponse<object> { data = new { banner_url = bannerUrl } },
-                (JsonTypeInfo<DTOs.OkResponse<object>>)AppJsonContext.Default.GetTypeInfo(typeof(DTOs.OkResponse<object>))!);
+            return Results.Json(new DTOs.OkResponse<object> { data = new { banner_url = bannerUrl } });
         });
     }
 
