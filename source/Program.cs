@@ -275,7 +275,7 @@ internal class Program() {
                         bool isLocalHost = u.Host.Equals("localhost", System.StringComparison.OrdinalIgnoreCase) || u.Host.Equals("127.0.0.1");
                         if (isLocalHost) {
                             // Typical ports: Astro 4321, Vite 5173/3000, custom 8080/3001
-                            HashSet<int> allowedPorts = new HashSet<int> { 80, 443, 3000, 3001, 4321, 5173, 8080 };
+                            HashSet<int> allowedPorts = new HashSet<int> { 80, 443, 3000, 3001, 4321, 5173, 8080, 8088, 5050 };
                             if (allowedPorts.Contains(u.Port)) {
                                 return true;
                             }
