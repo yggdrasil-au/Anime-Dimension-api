@@ -75,7 +75,7 @@ public static class LoginEndpoints {
             }
         });
 
-        app.MapPut("/api/login", async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
+        app.MapMethods("/api/login", new[] { "PUT", "POST" }, async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
             if (!req.HasJsonContentType()) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Request must be of type application/json" },
                     statusCode: 415);
@@ -147,6 +147,9 @@ public static class LoginEndpoints {
             await usersDb.SaveChangesAsync();
 
             string? platform = req.Headers["X-Platform"].FirstOrDefault();
+            if (string.IsNullOrEmpty(platform)) {
+                platform = "web";
+            }
 
             // Set the session token in a secure, HttpOnly cookie.
             // NOTE: `SameSite` controls whether the cookie is sent on cross-site requests.

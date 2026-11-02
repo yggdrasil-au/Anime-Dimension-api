@@ -38,7 +38,7 @@ public static class AuthEndpoints {
             return Results.Json(payload, statusCode: 200);
         });
 
-        app.MapPost("/api/auth/signup", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
+        app.MapPost("/api/auth/signup", async (HttpRequest req, HttpResponse res, Sql.UsersDbContext usersDb) => {
             SignupRequest? body = await req.ReadFromJsonAsync<SignupRequest>();
 
             if (body == null) return Results.BadRequest();
@@ -77,17 +77,13 @@ public static class AuthEndpoints {
 
             // --- 2. Database Checks ---
 
-            // Quick check (Optimization before hashing)
             if (await usersDb.Users.AnyAsync(u => u.Username == username || u.Email == email)) {
                 return ErrorResult("Username or email already exists.");
             }
 
             // --- 3. Processing ---
 
-            // Hash the password
             string passwordHash = helpers.AuthHelpers.HashPassword(password);
-
-            // Generate unique User ID
             string userId = await GenerateUniqueUserIdAsync(usersDb);
 
             var newUser = new Models.User {
@@ -95,25 +91,96 @@ public static class AuthEndpoints {
                 Email = email,
                 PasswordHash = passwordHash,
                 UserId = userId,
-                CreatedAt = DateTime.UtcNow // Ensure you have this field or remove if not
+                CreatedAt = DateTime.UtcNow
             };
 
             try {
                 usersDb.Users.Add(newUser);
                 await usersDb.SaveChangesAsync();
-            }
-            catch (DbUpdateException) {
-                // Catch race condition: Two users registered exact same name at exact same time
-                // The DB unique constraint will throw here.
-                return ErrorResult("Username or email already exists."); 
+            } catch (DbUpdateException) {
+                return ErrorResult("Username or email already exists.");
             }
 
+            // Ensure profile and watch stat tables exist and have base rows
+            await EnsureUserProfileInitAsync(usersDb, userId);
 
-            return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null }, statusCode: 200);
+            // Automatically create authenticated user session (auto-login)
+            string sessionToken = Guid.NewGuid().ToString();
+            DateTime now = DateTime.UtcNow;
+            var session = new Models.UserSession {
+                UserId = userId,
+                SessionToken = sessionToken,
+                CreatedAt = now,
+                ExpiresAt = now.AddHours(24)
+            };
+            usersDb.UserSessions.Add(session);
+            await usersDb.SaveChangesAsync();
+
+            res.Cookies.Append("session_token", sessionToken, new CookieOptions {
+                HttpOnly = true,
+                Secure = req.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                Expires = session.ExpiresAt
+            });
+
+            return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> {
+                data = new DTOs.LoginOkData {
+                    user_id = newUser.UserId,
+                    user_name = newUser.Username
+                }
+            }, statusCode: 200);
         });
     }
 
     // --- Helper Methods ---
+    private static async Task EnsureUserProfileInitAsync(Sql.UsersDbContext usersDb, string userId) {
+        string createProfiles = @"CREATE TABLE IF NOT EXISTS UserProfiles (
+            UserId TEXT PRIMARY KEY,
+            JoinedAt TEXT NOT NULL
+        );";
+
+        string createWatchStats = @"CREATE TABLE IF NOT EXISTS UserWatchStats (
+            UserId TEXT PRIMARY KEY,
+            MinutesWatched INTEGER NOT NULL DEFAULT 0,
+            Watched INTEGER NOT NULL DEFAULT 0,
+            Watching INTEGER NOT NULL DEFAULT 0,
+            Want INTEGER NOT NULL DEFAULT 0,
+            Stalled INTEGER NOT NULL DEFAULT 0,
+            Dropped INTEGER NOT NULL DEFAULT 0,
+            Wont INTEGER NOT NULL DEFAULT 0
+        );";
+
+        string createRatings = @"CREATE TABLE IF NOT EXISTS UserRatings (
+            UserId TEXT PRIMARY KEY,
+            R50 INTEGER NOT NULL DEFAULT 0,
+            R45 INTEGER NOT NULL DEFAULT 0,
+            R40 INTEGER NOT NULL DEFAULT 0,
+            R35 INTEGER NOT NULL DEFAULT 0,
+            R30 INTEGER NOT NULL DEFAULT 0,
+            R25 INTEGER NOT NULL DEFAULT 0,
+            R20 INTEGER NOT NULL DEFAULT 0,
+            R15 INTEGER NOT NULL DEFAULT 0,
+            R10 INTEGER NOT NULL DEFAULT 0,
+            R05 INTEGER NOT NULL DEFAULT 0
+        );";
+
+        await usersDb.Database.ExecuteSqlRawAsync(createProfiles);
+        await usersDb.Database.ExecuteSqlRawAsync(createWatchStats);
+        await usersDb.Database.ExecuteSqlRawAsync(createRatings);
+
+        await usersDb.Database.ExecuteSqlRawAsync(
+            "INSERT INTO UserProfiles (UserId, JoinedAt) VALUES ({0}, {1}) ON CONFLICT(UserId) DO NOTHING;",
+            userId, DateTime.UtcNow.ToString("o"));
+
+        await usersDb.Database.ExecuteSqlRawAsync(
+            "INSERT INTO UserWatchStats (UserId, MinutesWatched, Watched, Watching, Want, Stalled, Dropped, Wont) VALUES ({0}, 0, 0, 0, 0, 0, 0, 0) ON CONFLICT(UserId) DO NOTHING;",
+            userId);
+
+        await usersDb.Database.ExecuteSqlRawAsync(
+            "INSERT INTO UserRatings (UserId, R50, R45, R40, R35, R30, R25, R20, R15, R10, R05) VALUES ({0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) ON CONFLICT(UserId) DO NOTHING;",
+            userId);
+    }
 
     private static IResult ErrorResult(string message) {
         return Results.Json(new DTOs.ErrResponse { status = "err", msg = message }, statusCode: 400);

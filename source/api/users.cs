@@ -25,7 +25,7 @@ public static class UsersEndpoints {
         // GET /api/users/profile?username=foo
         app.MapGet("/api/users/profile", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
             string uname = (req.Query["username"].ToString() ?? string.Empty).Trim();
-            if (string.IsNullOrEmpty(uname) || !Regex.IsMatch(uname, @"^[a-zA-Z0-9]+$")) {
+            if (string.IsNullOrEmpty(uname) || !Regex.IsMatch(uname, @"^[a-zA-Z0-9_]{3,30}$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or missing username" },
                     statusCode: 400);
             }

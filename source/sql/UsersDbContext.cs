@@ -1,15 +1,25 @@
 // Sql/UsersDbContext.cs
 using ASP.NETCoreWebApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ASP.NETCoreWebApi.Sql;
 
-public class UsersDbContext:Microsoft.EntityFrameworkCore.DbContext {
-    public UsersDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<UsersDbContext> options):base(options) { }
-    public Microsoft.EntityFrameworkCore.DbSet<UserSession> UserSessions {
+public class UsersDbContext:DbContext {
+    public UsersDbContext(DbContextOptions<UsersDbContext> options):base(options) { }
+    public DbSet<UserSession> UserSessions {
         get; set;
     }
 
-    public Microsoft.EntityFrameworkCore.DbSet<User> Users {
+    public DbSet<User> Users {
         get; set;
+    }
+
+    public DbSet<UserAnimeListEntry> UserAnimeLists {
+        get; set;
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<UserAnimeListEntry>().ToTable("UserAnimeList");
     }
 }

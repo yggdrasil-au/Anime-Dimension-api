@@ -181,6 +181,8 @@ internal class Program() {
             });
 
             app.MapAnimeEndpoints();            // Register the anime endpoints (now DB-backed)
+            app.MapAnimeListEndpoints();        // Register user anime list tracking endpoints
+            app.MapImportEndpoints();           // Register data import endpoints (Anime-Planet, etc.)
             app.MapSuggestionsEndpoints();      // Register the suggestions endpoints (now DB-backed)
             app.MapValidationEndpoints();       // Register the validation endpoints
             app.MapNotificationsEndpoints();    // Register the notifications endpoints

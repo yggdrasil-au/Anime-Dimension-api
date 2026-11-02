@@ -19,7 +19,7 @@ public static class ValidationsEndpoints {
             UsernameRequest? body = await req.ReadFromJsonAsync<UsernameRequest>();
             string? username = body?.username;
 
-            if (string.IsNullOrWhiteSpace(username) || !Regex.IsMatch(username, @"^[a-zA-Z0-9]+$")) {
+            if (string.IsNullOrWhiteSpace(username) || !Regex.IsMatch(username, @"^[a-zA-Z0-9_]{3,30}$")) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Only letters or numbers" },
                     statusCode: 400);
             }
