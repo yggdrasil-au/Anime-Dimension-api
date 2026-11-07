@@ -131,7 +131,7 @@ public static class UsersEndpoints {
 
         // GET /api/users/me
         app.MapGet("/api/users/me", async (HttpRequest req, Sql.UsersDbContext usersDb) => {
-            string? token = req.Cookies["session_token"];
+            string? token = ExtractSessionToken(req);
             if (string.IsNullOrEmpty(token)) {
                 return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Not authenticated" },
                     statusCode: 401);
@@ -211,8 +211,22 @@ public static class UsersEndpoints {
         });
     }
 
-    private static async Task<ASP.NETCoreWebApi.Models.User?> ResolveUserFromSession(HttpRequest req, Sql.UsersDbContext usersDb) {
+    private static string? ExtractSessionToken(HttpRequest req) {
         string? token = req.Cookies["session_token"];
+        if (string.IsNullOrEmpty(token)) {
+            string? authHeader = req.Headers["Authorization"];
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
+                token = authHeader.Substring(7).Trim();
+            }
+        }
+        if (string.IsNullOrEmpty(token) && req.Query.TryGetValue("session_token", out var qSessionToken)) {
+            token = qSessionToken.ToString();
+        }
+        return token;
+    }
+
+    private static async Task<ASP.NETCoreWebApi.Models.User?> ResolveUserFromSession(HttpRequest req, Sql.UsersDbContext usersDb) {
+        string? token = ExtractSessionToken(req);
         if (string.IsNullOrEmpty(token))
             return null;
         Models.UserSession? session = await usersDb.UserSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionToken == token);

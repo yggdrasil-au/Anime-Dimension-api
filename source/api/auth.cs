@@ -127,7 +127,8 @@ public static class AuthEndpoints {
             return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> {
                 data = new DTOs.LoginOkData {
                     user_id = newUser.UserId,
-                    user_name = newUser.Username
+                    user_name = newUser.Username,
+                    session_token = sessionToken
                 }
             }, statusCode: 200);
         });

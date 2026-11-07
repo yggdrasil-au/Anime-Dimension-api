@@ -14,25 +14,32 @@ public static class LoginEndpoints {
 
     public static void MapLoginEndpoints(this IEndpointRouteBuilder app) {
 
-        app.MapPut("/api/login/validateState", async (HttpRequest req, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
+        app.MapMethods("/api/login/validateState", new[] { "GET", "PUT", "POST" }, async (HttpRequest req, Sql.UsersDbContext usersDb, ILogger<Program> logger) => {
             try {
                 string? token = req.Cookies["session_token"];
                 if (string.IsNullOrEmpty(token)) {
-                    if (req.ContentLength.HasValue && req.ContentLength.Value > 0) {
-                        try {
-                            ValidateRequest? body = await req.ReadFromJsonAsync<ValidateRequest>();
-                            token = body?.token;
-                        } catch (Exception ex) {
-                            logger.LogWarning("Failed to parse JSON body: {Message}", ex.Message);
-                        }
+                    if (req.Query.TryGetValue("session_token", out var qSessionToken)) {
+                        token = qSessionToken.ToString();
+                    } else if (req.Query.TryGetValue("token", out var qToken)) {
+                        token = qToken.ToString();
                     }
                 }
 
-                // If token is not in cookie, check the Authorization header
+                // If token is not in cookie or query, check the Authorization header
                 if (string.IsNullOrEmpty(token)) {
                     string? authHeader = req.Headers["Authorization"];
-                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ")) {
-                        token = authHeader.Substring(7); // "Bearer ".Length
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
+                        token = authHeader.Substring(7).Trim();
+                    }
+                }
+
+                // Check JSON body for non-GET requests if still empty
+                if (string.IsNullOrEmpty(token) && req.ContentLength.HasValue && req.ContentLength.Value > 0 && !HttpMethods.IsGet(req.Method)) {
+                    try {
+                        ValidateRequest? body = await req.ReadFromJsonAsync<ValidateRequest>();
+                        token = body?.token;
+                    } catch (Exception ex) {
+                        logger.LogWarning("Failed to parse JSON body: {Message}", ex.Message);
                     }
                 }
 
@@ -47,8 +54,13 @@ public static class LoginEndpoints {
                 .FirstOrDefaultAsync(s => s.SessionToken == token);
 
                 if (session == null || session.ExpiresAt < DateTime.UtcNow) {
+                    bool isHttps = req.IsHttps || string.Equals(req.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
                     if (req.Cookies.ContainsKey("session_token")) {
-                        req.HttpContext.Response.Cookies.Delete("session_token");
+                        req.HttpContext.Response.Cookies.Delete("session_token", new CookieOptions {
+                            Path = "/",
+                            Secure = isHttps,
+                            SameSite = SameSiteMode.Lax
+                        });
                     }
                     logger.LogInformation("401: Invalid or expired session token");
                     return Results.Json(new DTOs.ErrResponse { status = "err", msg = "Invalid or expired session token" },
@@ -159,16 +171,18 @@ public static class LoginEndpoints {
             //   prefer `SameSiteMode.Lax` (or `Strict`) for improved CSRF protection.
             // If you want to change this behavior based on deployment, consider making
             // the SameSite mode configurable via environment/config.
+            bool isHttps = req.IsHttps || string.Equals(req.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
             res.Cookies.Append("session_token", sessionToken, new CookieOptions {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = session.ExpiresAt
+                Secure = isHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = session.ExpiresAt,
+                Path = "/"
             });
 
             if (!string.IsNullOrEmpty(platform) && platform == "web") {
                 logger.LogInformation("200: Login success (web) for user {UserId} ({Username})", user.UserId, user.Username);
-                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> { data = new DTOs.LoginOkData { user_id = user.UserId, user_name = user.Username } });
+                return Results.Json(new DTOs.OkResponse<DTOs.LoginOkData> { data = new DTOs.LoginOkData { user_id = user.UserId, user_name = user.Username, session_token = sessionToken } });
             } else if (!string.IsNullOrEmpty(platform) && (platform == "android" || platform == "ios")) {
                 logger.LogInformation("200: Login success ({Platform}) for user {UserId} ({Username})", platform, user.UserId, user.Username);
                 return Results.Json(new DTOs.OkResponse<DTOs.LoginOkDataMobile> { data = new DTOs.LoginOkDataMobile { user_id = user.UserId, user_name = user.Username, session_token = sessionToken } });

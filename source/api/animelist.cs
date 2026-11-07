@@ -344,6 +344,9 @@ public static class AnimeListEndpoints {
                 token = authHeader.Substring(7).Trim();
             }
         }
+        if (string.IsNullOrEmpty(token) && req.Query.TryGetValue("session_token", out var qSessionToken)) {
+            token = qSessionToken.ToString();
+        }
         if (string.IsNullOrEmpty(token)) return null;
 
         Models.UserSession? session = await usersDb.UserSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionToken == token);

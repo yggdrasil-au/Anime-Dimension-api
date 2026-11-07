@@ -11,6 +11,70 @@ using System.Collections.Generic;
 namespace ASP.NETCoreWebApi;
 public static class SuggestionsEndpoints {
 
+    private static async System.Threading.Tasks.Task PopulateStreamingDataAsync(Microsoft.Data.Sqlite.SqliteConnection conn, List<DTOs.SuggestionItem> list) {
+        if (list == null || list.Count == 0) return;
+
+        var anilistIdToItems = new Dictionary<long, List<DTOs.SuggestionItem>>();
+        foreach (var item in list) {
+            if (item.dataId.HasValue && item.dataId.Value > 0) {
+                if (!anilistIdToItems.TryGetValue(item.dataId.Value, out var itemList)) {
+                    itemList = new List<DTOs.SuggestionItem>();
+                    anilistIdToItems[item.dataId.Value] = itemList;
+                }
+                itemList.Add(item);
+            }
+        }
+
+        if (anilistIdToItems.Count == 0) return;
+
+        bool hasView = false;
+        using (var chkCmd = conn.CreateCommand()) {
+            chkCmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='view' AND name='v_anilist_streaming';";
+            var scalar = await chkCmd.ExecuteScalarAsync().ConfigureAwait(false);
+            hasView = scalar != null && scalar != DBNull.Value;
+        }
+
+        if (!hasView) return;
+
+        string idList = string.Join(",", anilistIdToItems.Keys);
+        using var streamCmd = conn.CreateCommand();
+        streamCmd.CommandText = $"SELECT anilist_id, service_code, service_numeric_id, service_text_id, service_url FROM v_anilist_streaming WHERE anilist_id IN ({idList});";
+
+        using var reader = await streamCmd.ExecuteReaderAsync().ConfigureAwait(false);
+        while (await reader.ReadAsync().ConfigureAwait(false)) {
+            long anilistId = reader.GetInt64(0);
+            string serviceCode = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+            long? numId = reader.IsDBNull(2) ? (long?)null : reader.GetInt64(2);
+            string? textId = reader.IsDBNull(3) ? null : reader.GetString(3);
+            string? url = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            string platform = serviceCode;
+            if (string.Equals(serviceCode, "crunchyroll", StringComparison.OrdinalIgnoreCase))
+                platform = "Crunchyroll";
+            else if (string.Equals(serviceCode, "hidive", StringComparison.OrdinalIgnoreCase))
+                platform = "HiDive";
+
+            if (anilistIdToItems.TryGetValue(anilistId, out var targetItems)) {
+                foreach (var target in targetItems) {
+                    target.streams ??= new List<DTOs.StreamSourceItem>();
+                    if (!string.IsNullOrEmpty(url)) {
+                        if (!target.streams.Any(s => string.Equals(s.platform, platform, StringComparison.OrdinalIgnoreCase))) {
+                            target.streams.Add(new DTOs.StreamSourceItem {
+                                platform = platform,
+                                url = url
+                            });
+                        }
+                    }
+                    if (string.Equals(serviceCode, "crunchyroll", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(textId)) {
+                        target.crId ??= textId;
+                    } else if (string.Equals(serviceCode, "hidive", StringComparison.OrdinalIgnoreCase) && numId.HasValue) {
+                        target.hdId ??= numId;
+                    }
+                }
+            }
+        }
+    }
+
     public static void MapSuggestionsEndpoints(this IEndpointRouteBuilder app) {
 
         // Basic suggestions endpoint backed by SQLite
@@ -179,6 +243,7 @@ public static class SuggestionsEndpoints {
                         notes = string.IsNullOrWhiteSpace(notesRaw) ? null : notesRaw.Split('|', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray(),
                     });
                 }
+                await PopulateStreamingDataAsync(conn, list);
                 DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list, success = true };
                 return Results.Json(resp);
             } catch (Exception ex) {
@@ -341,7 +406,8 @@ public static class SuggestionsEndpoints {
                         notes = string.IsNullOrWhiteSpace(notesRaw) ? null : notesRaw.Split('|', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray(),
                     });
                 }
-                DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list };
+                await PopulateStreamingDataAsync(conn, list);
+                DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list, success = true };
                 return Results.Json(resp);
             } catch (Exception ex) {
                 return Results.Problem($"Failed to query popular: {ex.Message}");
@@ -507,6 +573,7 @@ public static class SuggestionsEndpoints {
                         notes = string.IsNullOrWhiteSpace(notesRaw) ? null : notesRaw.Split('|', ',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray(),
                     });
                 }
+                await PopulateStreamingDataAsync(conn, list);
                 DTOs.SuggestionsListResponse resp = new DTOs.SuggestionsListResponse { list = list, season = season, success = true };
                 return Results.Json(resp);
             } catch (Exception ex) {

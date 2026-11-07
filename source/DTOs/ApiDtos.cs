@@ -19,6 +19,11 @@ public sealed class OkResponse<T> {
     public required T data { get; init; }
 }
 
+public sealed class StreamSourceItem {
+    public string platform { get; init; } = string.Empty;
+    public string url { get; init; } = string.Empty;
+}
+
 // Suggestions shapes
 public sealed class SuggestionItem {
     public long id { get; init; }
@@ -39,6 +44,9 @@ public sealed class SuggestionItem {
     public int? dataTotalEpisodes { get; init; }
     public string[]? tags { get; init; }
     public string[]? notes { get; init; }
+    public List<StreamSourceItem>? streams { get; set; }
+    public string? crId { get; set; }
+    public long? hdId { get; set; }
 }
 
 public sealed class SuggestionsListResponse {
@@ -81,9 +89,9 @@ public sealed class UserProfileData {
 public class LoginOkData {
     public required string user_id { get; init; }
     public required string user_name { get; init; }
+    public string? session_token { get; init; }
 }
 public sealed class LoginOkDataMobile : LoginOkData {
-    public required string session_token { get; init; }
 }
 
 public sealed class ValidateStateData {

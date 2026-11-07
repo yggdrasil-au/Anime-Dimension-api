@@ -1,3 +1,4 @@
+using System;
 // api/logout.cs
 
 using Microsoft.AspNetCore.Routing;
@@ -39,7 +40,12 @@ public static class LogoutEndpoints {
             }
 
             // 5. Explicitly delete the cookie from the browser
-            res.Cookies.Delete("session_token");
+            bool isHttps = req.IsHttps || string.Equals(req.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
+            res.Cookies.Delete("session_token", new CookieOptions {
+                Path = "/",
+                Secure = isHttps,
+                SameSite = SameSiteMode.Lax
+            });
 
             return Results.Json(new DTOs.SimpleStatusResponse { status = "ok", data = null });
         });
